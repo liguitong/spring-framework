@@ -8,3 +8,9 @@
     BeanFactory接口提供了一种高级配置机制，可以用来管理任意对象。而ApplicationContext是BeanFactory
     的子接口，它的特性使得与Spring的AOP功能集成更加容易，这些特性包括：用于国际化处理的消息资源处理、
     事件发布及应用层特定上下文，例如用于web应用程序中的WebApplicationContext。
+    		总之，BeanFactory类提供了配置框架和基础功能，而ApplicationContext增加了更多了企业特定功能。
+    ApplicationContext类是BeanFactory的超集，它在本章中也特定用来描述Sping的IoC容器。对于Application-
+    Context的更多描述，请见[3.16. The BeanFactory](#3.16)
+    [0]:
+## 3.16{#3.16}
+    		
