@@ -13,6 +13,52 @@
 
 关于Application-Context的更多描述，请见[3.16 The BeanFactory](#3.16)
 
+## <span id="3.15">3.15</span>
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+## <span id="3.15">3.15</span>
+
+
+## <span id="3.15">3.15</span>
+
+
+
+## <span id="3.15">3.15</span>
+
+
+
+## <span id="3.15">3.15</span>
 
 
 
