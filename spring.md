@@ -100,8 +100,58 @@
 
 ```
 ApplicationContext context =  
-new ClassPathXmlApplicationContext(new String[]{"services.xml","daos.xml"});
+    new ClassPathXmlApplicationContext(new String[]{"services.xml","daos.xml"});
+```  
+
+![][note] 在学习了Spring IoC容器之后，你也许会想深入了解Spring的资源抽象相关内容，这在[章节4，资源](#4)进行描述，
+    它提供了一种方便的机制，用来读取一个输入流，输入流使用url形式描述。在特殊情况下，资源路径用来构建应用上下文，就
+    如在[章节4.7 应用上下文和资源路径](#47)所描述的那样。  
+　　下面的例子演示了服务层对象`(services.xml)`配置文件:
 ```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- services -->
+
+	<bean id="petStore" class="org.springframework.samples.jpetstore.services.PetStoreServiceImpl">
+		<property name="accountDao" ref="accountDao"/>
+		<property name="itemDao" ref="itemDao"/>
+		<!-- additional collaborators and configuration for this bean go here -->
+	</bean>
+
+	<!-- more bean definitions for services go here -->
+
+</beans>
+```  
+
+　　下面的例子演示了数据访问层对象`daos.xml`文件配置：
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="accountD
+		class="org.springframework.samples.jpetstore.dao.jpa.JpaAccountDao">
+		<!-- additional collaborators and configuration for this bean go here -->
+	</bean>
+
+	<bean id="itemDao" class="org.springframework.samples.jpetstore.dao.jpa.JpaItemDao">
+		<!-- additional collaborators and configuration for this bean go here -->
+	</bean>
+
+	<!-- more bean definitions for data access objects go here -->
+
+</beans>
+```  
+　　在上述例子中，服务层由类`PetStoreServiceImpl`和两个数据访问对象`JapAccountDao`,`JpaItemDao`
+    （基于JPA对象/关系映射标准）。`property name`元素表示JavaBean的属性名，而`ref`元素表示另一个
+    bean定义的名称。而`id`和`ref`之间的这种关系表明了各个协作对象之间的依赖。有关对象依赖的细节请参
+    考[依赖](#34)
 ## 3.16
     		
 
