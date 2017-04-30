@@ -151,7 +151,26 @@ ApplicationContext context =
 　　在上述例子中，服务层由类`PetStoreServiceImpl`和两个数据访问对象`JapAccountDao`,`JpaItemDao`
     （基于JPA对象/关系映射标准）。`property name`元素表示JavaBean的属性名，而`ref`元素表示另一个
     bean定义的名称。而`id`和`ref`之间的这种关系表明了各个协作对象之间的依赖。有关对象依赖的细节请参
-    考[依赖](#34)
+    考[依赖](#34)  
+
+#### 基于XML描述的元数据的组合
+
+　　如果bean的定义能够跨越多个XML文件，这将会非常有用。通常在你的架构中，一个逻辑层或模块由一个单独的xml
+    配置文件来表示。  
+        你可以使用 application context的构造函数来加载这些XML片断，就如上节所述，这个构造函数可以传入
+    多个`Resource`位置。另外，你也可以通过使用一个或多个`<import/>`元素来加载其它文件中的bean定义。
+    如下所示：
+
+```
+<beans>
+    <import resource="services.xml" />
+    <import resource="resources/messageSource.xml" />
+    <import resource="/resources/themeSource.xml" />
+
+    <bean id="bean1" class="..." />
+    <bean id="bean2" class="..." />
+</beans>
+```
 ## 3.16
     		
 
