@@ -39,8 +39,19 @@
     创建和初始化之后，你就拥有一个完全配置化的可执行系统和应用。
 ### Figure 3.1. Spring IoC容器
 ![][figure31]
+
+## 3.2.1 配置元数据
+
+　　　　如上图所示，Spring IoC容器通过配置元数据工作。通过配置元数据，开发者可以告诉Spring容器如何去实
+    例化、配置和组装应用中的对象。
+
+　　　　元数据通常以传统的简单直观的XML格式配置，本章中大多数时候都通过这种方式来展示Sping IoC容器的关
+    键概念和功能。
+
+![][note]
 ## 3.16
     		
 
 
 [figure31]:src/docs/images/container-magic.png
+[note]:srce/docs/images/note.png
