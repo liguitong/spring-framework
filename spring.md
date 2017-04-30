@@ -171,6 +171,7 @@ ApplicationContext context =
     <bean id="bean2" class="..." />
 </beans>
 ```　　
+
 　　      在上述例子中，从额外三个文件中引入了bean定义：`services.xml`,`messageSource.xml`,`themeSource.xml`。
     这些文件路径都是相对于引入这三个文件的bean定义文件设置的，所以`services.xml`必须放在和导入这些文件的
     xml位于同一个目录或相同的类路径，而`messageSource.xml`和`themeSource.xml`则要放在下一层的`resources`
