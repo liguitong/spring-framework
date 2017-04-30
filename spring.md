@@ -211,7 +211,7 @@ beans {
     }
 }
 ```
-　　　　这种配置风格在很大程序上等同于XMLbean定义，甚至支持Spring的XML配置的命名空间.
+　　这种配置风格在很大程序上等同于XMLbean定义，甚至支持Spring的XML配置的命名空间.
     它同样允许通过 "importBeans"指令 导入XMLbean定义文件。
 ## 3.16
     		
