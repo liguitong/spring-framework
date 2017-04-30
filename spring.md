@@ -88,6 +88,20 @@
 
 </beans>
 ```
+
+　　　　`id`属性是一个字符串，用来标识一个单独的bean定义。`class`属性定义了bean的类型和完整的类型名。
+属性的值指向协作对象，用来指明协作对象的xml在本示例中未展示，详细请参考[依赖](#34)。
+
+### 3.2.2 实例化容器
+
+　　　　实例化Spring IoC容器非常简单。`ApplicationContext`的构建参数中的path或paths实际上就是
+    资源字符串，容器使用它来加载配置元数据。这些资源字符串可以代表各种各样的资源，比如：文件系统、
+    java `CLASSPATH`等等。
+
+```
+ApplicationContext context =  
+new ClassPathXmlApplicationContext(new String[]{"services.xml","daos.xml"});
+```
 ## 3.16
     		
 
