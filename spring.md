@@ -170,7 +170,22 @@ ApplicationContext context =
     <bean id="bean1" class="..." />
     <bean id="bean2" class="..." />
 </beans>
-```
+```　　
+　　      在上述例子中，从额外三个文件中引入了bean定义：`services.xml`,`messageSource.xml`,`themeSource.xml`。
+    这些文件路径都是相对于引入这三个文件的bean定义文件设置的，所以`services.xml`必须放在和导入这些文件的
+    xml位于同一个目录或相同的类路径，而`messageSource.xml`和`themeSource.xml`则要放在下一层的`resources`
+    目录下。如你所见，路径开头的斜杠是被忽略的，但鉴于这些路径是相对的，所以最好根本就不要加斜杠。
+    被引入的文件，包括顶层的`<beans/>`元素，一定要符合Spring xml bean定义模式。
+
+![][note]我们不推荐使用相对路径"../"去引入父目录下的文件，即使这样做是合法的。这样的后果是我们创建了一个应用程序
+    之外的依赖，尤其不推荐的是在"classpath" URLS中这样做（例如："classpath:../services.xml"）,在运行时应用会
+    选择一个最近的classpath的根目录，并查找它的父目录。Classpath配置的改变会导致不同的、错误的目录。
+　　  你也可以一直使用绝对路径，例如："file:C:/config/services.xml"或"classpath:/config/services.xml"。
+    但你要明白，这样你就会把你的应用和一些特定的路径耦合在一起了。一种更好的做法是间接引用这种绝对路径，例如：
+    通过使用"${...}"这种在运行时通过JVM系统参数解决的占位符。  
+
+　　import指令是beans命名空间本身的特性，除了这种纯粹的bean定义之后，更多的特性可以通过选择Spring 提供的命名空间
+    来实现，例如："context"和"util"命名空间。
 ## 3.16
     		
 
