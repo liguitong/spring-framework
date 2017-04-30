@@ -187,6 +187,32 @@ ApplicationContext context =
 
 　　import指令是beans命名空间本身的特性，除了这种纯粹的bean定义之后，更多的特性可以通过选择Spring 提供的命名空间
     来实现，例如："context"和"util"命名空间。
+
+#### Groovy Bean定义语言  
+
+　　　　作为外部配置元数据的另一个例子，bean定义也可以通过Spring的Groovy bean定义语言实现，这可以从Grails框架得来。
+    通常，你可以在一个如下构建的".groovy"文件中配置：
+```
+beans {
+    dataSource(BasicDataSource) {
+        driverClassName = "org.hsqldb.jdbcDriver"
+        url = "jdbc:hsqldb:mem:grailsDB"
+        username = "sa"
+        password = ""
+        settings = [mynew:"setting"]
+    }
+    sessionFactory(SessionFactory) {
+        dataSource = dataSource
+    }
+    myService(MyService) {
+        nestedBean = { AnotherBean bean -> 
+                dataSource = dataSource
+            }
+    }
+}
+```
+　　　　这种配置风格在很大程序上等同于XMLbean定义，甚至支持Spring的XML配置的命名空间.
+    它同样允许通过 "importBeans"指令 导入XMLbean定义文件。
 ## 3.16
     		
 
