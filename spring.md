@@ -54,4 +54,4 @@
 
 
 [figure31]:src/docs/images/container-magic.png
-[note]:srce/docs/images/note.png
+[note]:src/docs/images/note.png
