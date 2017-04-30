@@ -11,7 +11,7 @@
         总之，BeanFactory类提供了配置框架和基础功能，而ApplicationContext增加了更多了企业特定功能。
     ApplicationContext类是BeanFactory的超集，它在本章中也特定用来描述Sping的IoC容器。
 
-关于Application-Context的更多描述，请见[3.16 The BeanFactory](#3.16)
+关于Application-Context的更多描述，请见[3.16 The BeanFactory](#316)
 
 
 ## 3.16
