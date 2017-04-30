@@ -48,7 +48,46 @@
 　　　　元数据通常以传统的简单直观的XML格式配置，本章中大多数时候都通过这种方式来展示Sping IoC容器的关
     键概念和功能。
 
-![][note]
+![][note] XML并非是配置元数据的唯一方式，Spring IoC容器与配置元数据的方式已经完全解耦，在今天，越来越
+    多的开发者选择[基于java的配置](#312)来使用Spring应用。
+
+　　　　有关如何使用其它方式配置Spring容器，可以参考如下章节：
+
+* [基于标注的配置](#39)：从Spring2.5开始引入基于标注的配置。
+* [基于Java的配置](#312)：从Spring3.0开始，基于Java配置的很多工程所提供的特性成为Spring框架的核心，
+因此你可以选择使用java而不是XML来扩展应用。要使用这些功能，请参考
+`@Configuration`,`@Bean`, `@Import`,`@DependsOn` 标注。
+
+　　　　Spring配置包含至少一个且通常多于一个bean定义用于管理。基于XML的配置通过在顶级元素`<beans/>`
+    下包含的`<bean/>`元素来表示这些beans。基于Java的配置则通过`@Configuration`类的`@Bean`标注方
+    法来实现。
+
+　　　　bean定义与组成应用的实际对象一一对应。通常情况下你只定义服务层对象，如数据访问对象（DAOs)，
+    表现层对象 Struts `Action`实例，基础框架对象 Hinerate `SessionFactories`,JMS `Queues`等。
+    而不定义具体领域对象，因为创建领域对象是DAOs和业务逻辑的责任。然而你也可以通过集成AspectJ来配置
+    在IoC容器之外创建的对象。请参考[使用AspectJ在Spring中注入领域对象](#781)
+
+　　　　下面的示例展示了XML配置框架：
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="..." class="...">
+		<!-- collaborators and configuration for this bean go here -->
+	</bean>
+
+	<bean id="..." class="...">
+		<!-- collaborators and configuration for this bean go here -->
+	</bean>
+
+	<!-- more bean definitions go here -->
+
+</beans>
+```
 ## 3.16
     		
 
