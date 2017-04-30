@@ -242,7 +242,7 @@ List<String> userList = service.getUsernameList();
 　　`GroovyBeanDefinitionReader`结合读取groovy文件：
 ```
     GenericApplicationContext context = new GenericApplicationContext();
-new GroovyBeanDefinitionReader(ctx).loadBeanDefinitions("services.groovy", "daos.groovy");
+    new GroovyBeanDefinitionReader(ctx).loadBeanDefinitions("services.groovy", "daos.groovy");
    context.refresh();
 ```
 ## 3.16
