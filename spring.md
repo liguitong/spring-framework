@@ -226,6 +226,25 @@ PetStoreService service = context.getBean("petStore", PetStoreService.class);
 // use configured instance  
 List<String> userList = service.getUsernameList();
 ```
+　　使用Groovy的配置，启动代码看起来类似，只是使用不同的上下文实现，此上下文实现是
+    Groovy感知的(但也可以理解XML bean定义):
+```
+    ApplicationContext context =  
+        new GenericGroovyApplicationContext("services.groovy", "daos.groovy");
+```
+　　最灵活的变体是`GenericApplicationContext`与读者代表结合使用，例如与
+    `XmlBeanDefinitionReader`结合读取XML文件：
+```
+    GenericApplicationContext context = new GenericApplicationContext();
+    new XmlBeanDefinitionReader(ctx).loadBeanDefinitions("services.xml","daos.xml");
+    context.refresh();
+```
+　　`GroovyBeanDefinitionReader`结合读取groovy文件：
+```
+    GenericApplicationContext context = new GenericApplicationContext();
+new GroovyBeanDefinitionReader(ctx).loadBeanDefinitions("services.groovy", "daos.groovy");
+   context.refresh();
+```
 ## 3.16
     		
 
