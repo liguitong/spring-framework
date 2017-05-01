@@ -311,10 +311,12 @@ List<String> userList = service.getUsernameList();
 　　作为如何创建一个特定bean的补充，`ApplicationContext`实现还允许注册在容器外由用户创建的现有对象。
     这通过getBeanFactory()方法访问ApplicationContext 的BeanFactory，此方法返回BeanFactory的
     `DefaultListableBeanFactory`实现。`DefaultListableBeanFactory`通过`registerSingleton(..)`
-    和`registerBeanDefinition(..)`两个方法实现。然而，典型的应用只使用通过元数据配置定义的bean。
+    和`registerBeanDefinition(..)`两个方法实现。然而，典型的应用只使用通过元数据配置定义的bean。  
+
 ![][note] Bean的元数据或手动提供的单例越早注册越好，以便容器在自动装配或进行其它内省步骤时能合理处置。
     虽然在某种程序上是支持覆盖已存在的元数据或单例的，但在运行时注册新的bean（同时实时访问工厂）并未被正
-    式支持,因为这可能会导致容器并发访问异常或状态不一致。
+    式支持,因为这可能会导致容器并发访问异常或状态不一致。  
+
 ### 3.3.1 命名bean
 　　每个bean都有一个或多个标识，这些标识符在宿主容器中必须是唯一的。一个bean通常只有一个标识符，但如果
     需要也可以多于一个，多出来的则被认为是别名。
