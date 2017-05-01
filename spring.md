@@ -327,7 +327,8 @@ List<String> userList = service.getUsernameList();
     XML解析器不再强制`id`的唯一性，但是容器仍然强制要求。
 　　并不一定要给bean指定id或名称,如果没有显示指定，容器会生成一个唯一的名称。然后，如果你要通过名称来引用
     此bean，类似于Service Locator格式`ref`元素，你必须要提供一个名称。不提供名称的动机在于你要使用内部
-    beans和自动装配的协作者。
+    beans和自动装配的协作者。  
+
     #### Bean名称约定 
     对于bean的命名约定是遵循java字段的命名约定，即开头使用小写字母，后续采用驼峰式命名，类似的名字如下：
     `accountManager`,`accountService`，`userDao`,`loginController`等等。
