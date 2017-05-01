@@ -246,10 +246,24 @@ List<String> userList = service.getUsernameList();
     context.refresh();
 ```
 　　如果需要，这读者委托可以混合使用并匹配到同一个`ApplicationContext`，从不同的配置源读取bean定义。
-　　你可以使用`getBean`方法来获取你的bean对应的实例。`ApplicationContext`接口也有许多其它方法用于获取
+    你可以使用`getBean`方法来获取你的bean对应的实例。`ApplicationContext`接口也有许多其它方法用于获取
     bean，但最理想的情况就是你永远也用不到它们。实际上，你的应用代码根本就不应该使用`getBean()`方法，也
     不需要依赖Spring的API.例如，Spring的web应用集成框架提供了对于各种web组件的依赖注入，比如控制器和
     JSF管理的beans，这允许你通过元数据来声明一个特定bean的依赖。
+## 3.3 Bean概览
+　　Spring IoC容器管理一个或多个beans，这些beans通过你提供给容器的配置元数据来创建，比如XML格式的`<bean/>`
+    定义。
+　　在容器内部，这些bean定义用`BeanDefinition`对象表示，此对象包含以下元数据(或者更多)：
+* 一个包限定的类名：通常是被定义bean的实现类；
+* bean行为配置元素，用来说明bean在容器中的行为（作用域、生命周期回调等等）；
+* bean完成工作需要的对其它bean的引用，这些引用也被称作依赖或合作者；
+* 其它用来设置新创建对象的配置，例如：bean用来管理连接器的连接数，或者连接池最大数目。
+
+　　这些配置会转换成它们组成的bean的各种属性
+### 3.1.bean定义
+　　|属性          |章节                              |
+　　|--------------|--------------------____________:|
+　　|class         |[3.3.2 初始化bean](#332)          |
 ## 3.16
     		
 
