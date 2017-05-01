@@ -329,7 +329,7 @@ List<String> userList = service.getUsernameList();
     此bean，类似于Service Locator格式`ref`元素，你必须要提供一个名称。不提供名称的动机在于你要使用内部
     beans和自动装配的协作者。  
 
-    #### Bean名称约定 
+#### Bean名称约定 
     对于bean的命名约定是遵循java字段的命名约定，即开头使用小写字母，后续采用驼峰式命名，类似的名字如下：
     `accountManager`,`accountService`，`userDao`,`loginController`等等。
 　　
