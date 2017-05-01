@@ -261,6 +261,7 @@ List<String> userList = service.getUsernameList();
 
 　　这些配置会转换成它们组成的bean的各种属性
 ### 表3.1.bean定义
+
 　　|属性          |章节                              |
 　　|--------------|--------------------------------:|
 　　|class         |[3.3.2 初始化bean](#332)          |
