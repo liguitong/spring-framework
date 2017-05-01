@@ -308,6 +308,28 @@ List<String> userList = service.getUsernameList();
             <td>销毁回调</td>
         </tr>
     </table>
+　　作为如何创建一个特定bean的补充，`ApplicationContext`实现还允许注册在容器外由用户创建的现有对象。
+    这通过getBeanFactory()方法访问ApplicationContext 的BeanFactory，此方法返回BeanFactory的
+    `DefaultListableBeanFactory`实现。`DefaultListableBeanFactory`通过`registerSingleton(..)`
+    和`registerBeanDefinition(..)`两个方法实现。然而，典型的应用只使用通过元数据配置定义的bean。
+![][note] Bean的元数据或手动提供的单例越早注册越好，以便容器在自动装配或进行其它内省步骤时能合理处置。
+    虽然在某种程序上是支持覆盖已存在的元数据或单例的，但在运行时注册新的bean（同时实时访问工厂）并未被正
+    式支持,因为这可能会导致容器并发访问异常或状态不一致。
+### 3.3.1 命名bean
+　　每个bean都有一个或多个标识，这些标识符在宿主容器中必须是唯一的。一个bean通常只有一个标识符，但如果
+    需要也可以多于一个，多出来的则被认为是别名。
+　　基于XML元数据的配置，用`id`或`name`属性来标识bean定义。`id`属性只允许指定一个。通常名字都是由字母
+    数字组成('myBean','fooService'等)，但也可以说包含特殊字符。如果要为bean引入别名，可以在`name`
+    属性中指定，使用逗号(`,`),分号(`;`)或空格分隔。作为一个历史记录，在Spring 3.1之前的版本，`id`属性
+    通过`xsd:ID`类型定义，这限制了可能的字符。从3.1开始，由`xsd:string`类型代替。需要注意的是，虽然
+    XML解析器不再强制`id`的唯一性，但是容器仍然强制要求。
+　　并不一定要给bean指定id或名称,如果没有显示指定，容器会生成一个唯一的名称。然后，如果你要通过名称来引用
+    此bean，类似于Service Locator格式`ref`元素，你必须要提供一个名称。不提供名称的动机在于你要使用内部
+    beans和自动装配的协作者。
+    #### Bean名称约定 
+    对于bean的命名约定是遵循java字段的命名约定，即开头使用小写字母，后续采用驼峰式命名，类似的名字如下：
+    `accountManager`,`accountService`，`userDao`,`loginController`等等。
+　　
 ## 3.16
     		
 
