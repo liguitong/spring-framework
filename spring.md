@@ -243,8 +243,13 @@ List<String> userList = service.getUsernameList();
 ```
     GenericApplicationContext context = new GenericApplicationContext();
     new GroovyBeanDefinitionReader(ctx).loadBeanDefinitions("services.groovy", "daos.groovy");
-   context.refresh();
+    context.refresh();
 ```
+　　如果需要，这读者委托可以混合使用并匹配到同一个`ApplicationContext`，从不同的配置源读取bean定义。
+　　你可以使用`getBean`方法来获取你的bean对应的实例。`ApplicationContext`接口也有许多其它方法用于获取
+    bean，但最理想的情况就是你永远也用不到它们。实际上，你的应用代码根本就不应该使用`getBean()`方法，也
+    不需要依赖Spring的API.例如，Spring的web应用集成框架提供了对于各种web组件的依赖注入，比如控制器和
+    JSF管理的beans，这允许你通过元数据来声明一个特定bean的依赖。
 ## 3.16
     		
 
