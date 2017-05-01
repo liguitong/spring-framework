@@ -262,9 +262,20 @@ List<String> userList = service.getUsernameList();
 　　这些配置会转换成它们组成的bean的各种属性
 ### 表3.1.bean定义
 
-　　|属性          |章节                              |
-　　|--------------|--------------------------------:|
-　　|class         |[3.3.2 初始化bean](#332)          |
+<table>
+        <tr>
+            <th>属性</th>
+            <th>章节</th>
+        </tr>
+        <tr>
+            <td>类名</th>
+            <td>[3.3.2 初始化bean](#332)</td>
+        </tr>
+        <tr>
+            <td>显示器</td>
+            <td>/dev/stdout</td>
+        </tr>
+    </table>
 ## 3.16
     		
 
