@@ -268,12 +268,44 @@ List<String> userList = service.getUsernameList();
             <th>章节</th>
         </tr>
         <tr>
-            <td>类名</th>
-            <td>[3.3.2 初始化bean](#332)</td>
+            <td>class</th>
+            <td>3.3.2 初始化bean</td>
         </tr>
         <tr>
-            <td>显示器</td>
-            <td>/dev/stdout</td>
+            <td>name</td>
+            <td>3.3.1 命名bean</td>
+        </tr>
+        <tr>
+            <td>scope</td>
+            <td>3.5 bean作用域</td>
+        </tr>
+        <tr>
+            <td>constructor arguments</td>
+            <td>3.4.1 依赖注入</td>
+        </tr>
+        <tr>
+            <td>constructor arguments</td>
+            <td>3.4.1 依赖注入</td>
+        </tr>
+        <tr>
+            <td>properties</td>
+            <td>3.4.1 依赖注入</td>
+        </tr>
+        <tr>
+            <td>autowiring mode</td>
+            <td>3.4.5 合作者自动装配</td>
+        </tr>
+        <tr>
+            <td>lazy-initialization mode</td>
+            <td>3.4.4 懒初始化bean</td>
+        </tr>
+        <tr>
+            <td>initialization method</td>
+            <td>初始化回调</td>
+        </tr>
+        <tr>
+            <td>descruction method</td>
+            <td>销毁回调</td>
         </tr>
     </table>
 ## 3.16
