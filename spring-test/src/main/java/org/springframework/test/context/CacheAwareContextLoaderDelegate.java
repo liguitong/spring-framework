@@ -18,6 +18,7 @@ package org.springframework.test.context;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.lang.Nullable;
 import org.springframework.test.annotation.DirtiesContext.HierarchyMode;
 
 /**
@@ -45,7 +46,7 @@ public interface CacheAwareContextLoaderDelegate {
 	 * {@link org.springframework.test.context.cache.ContextCache#logStatistics()}.
 	 * @param mergedContextConfiguration the merged context configuration to use
 	 * to load the application context; never {@code null}
-	 * @return the application context
+	 * @return the application context (never {@code null})
 	 * @throws IllegalStateException if an error occurs while retrieving or loading
 	 * the application context
 	 */
@@ -69,6 +70,6 @@ public interface CacheAwareContextLoaderDelegate {
 	 * is not part of a hierarchy
 	 * @since 4.1
 	 */
-	void closeContext(MergedContextConfiguration mergedContextConfiguration, HierarchyMode hierarchyMode);
+	void closeContext(MergedContextConfiguration mergedContextConfiguration, @Nullable HierarchyMode hierarchyMode);
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -9,15 +9,17 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUUriBuilder WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.util;
 
 import java.net.URI;
 import java.util.Map;
 
+import org.springframework.lang.Nullable;
 import org.springframework.util.MultiValueMap;
 
 /**
@@ -43,21 +45,21 @@ public interface UriBuilder {
 	 * and may also be {@code null} to clear the scheme of this builder.
 	 * @param scheme the URI scheme
 	 */
-	UriBuilder scheme(String scheme);
+	UriBuilder scheme(@Nullable String scheme);
 
 	/**
 	 * Set the URI user info which may contain URI template variables, and
 	 * may also be {@code null} to clear the user info of this builder.
 	 * @param userInfo the URI user info
 	 */
-	UriBuilder userInfo(String userInfo);
+	UriBuilder userInfo(@Nullable String userInfo);
 
 	/**
 	 * Set the URI host which may contain URI template variables, and may also
 	 * be {@code null} to clear the host of this builder.
 	 * @param host the URI host
 	 */
-	UriBuilder host(String host);
+	UriBuilder host(@Nullable String host);
 
 	/**
 	 * Set the URI port. Passing {@code -1} will clear the port of this builder.
@@ -71,7 +73,7 @@ public interface UriBuilder {
 	 * Passing {@code null} will clear the port of this builder.
 	 * @param port the URI port
 	 */
-	UriBuilder port(String port);
+	UriBuilder port(@Nullable String port);
 
 	/**
 	 * Append the given path to the existing path of this builder.
@@ -82,9 +84,9 @@ public interface UriBuilder {
 
 	/**
 	 * Set the path of this builder overriding the existing path values.
-	 * @param path the URI path or {@code null} for an empty path.
+	 * @param path the URI path, or {@code null} for an empty path
 	 */
-	UriBuilder replacePath(String path);
+	UriBuilder replacePath(@Nullable String path);
 
 	/**
 	 * Append path segments to the existing path. Each path segment may contain
@@ -111,9 +113,9 @@ public interface UriBuilder {
 
 	/**
 	 * Set the query of this builder overriding all existing query parameters.
-	 * @param query the query string or {@code null} to remove all query params
+	 * @param query the query string, or {@code null} to remove all query params
 	 */
-	UriBuilder replaceQuery(String query);
+	UriBuilder replaceQuery(@Nullable String query);
 
 	/**
 	 * Append the given query parameter to the existing query parameters. The
@@ -150,7 +152,7 @@ public interface UriBuilder {
 	 * and may also be {@code null} to clear the fragment of this builder.
 	 * @param fragment the URI fragment
 	 */
-	UriBuilder fragment(String fragment);
+	UriBuilder fragment(@Nullable String fragment);
 
 	/**
 	 * Build a {@link URI} instance and replaces URI template variables

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import org.springframework.jms.listener.AbstractMessageListenerContainer;
 import org.springframework.jms.support.QosSettings;
 import org.springframework.jms.support.converter.MessageConverter;
 import org.springframework.jms.support.destination.DestinationResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.util.ErrorHandler;
 
 /**
@@ -32,6 +33,7 @@ import org.springframework.util.ErrorHandler;
  *
  * @author Stephane Nicoll
  * @since 4.1
+ * @param <C> the container type
  * @see AbstractMessageListenerContainer
  */
 public abstract class AbstractJmsListenerContainerFactory<C extends AbstractMessageListenerContainer>
@@ -39,32 +41,46 @@ public abstract class AbstractJmsListenerContainerFactory<C extends AbstractMess
 
 	protected final Log logger = LogFactory.getLog(getClass());
 
+	@Nullable
 	private ConnectionFactory connectionFactory;
 
+	@Nullable
 	private DestinationResolver destinationResolver;
 
+	@Nullable
 	private ErrorHandler errorHandler;
 
+	@Nullable
 	private MessageConverter messageConverter;
 
+	@Nullable
 	private Boolean sessionTransacted;
 
+	@Nullable
 	private Integer sessionAcknowledgeMode;
 
+	@Nullable
 	private Boolean pubSubDomain;
 
+	@Nullable
 	private Boolean replyPubSubDomain;
 
+	@Nullable
 	private QosSettings replyQosSettings;
 
+	@Nullable
 	private Boolean subscriptionDurable;
 
+	@Nullable
 	private Boolean subscriptionShared;
 
+	@Nullable
 	private String clientId;
 
+	@Nullable
 	private Integer phase;
 
+	@Nullable
 	private Boolean autoStartup;
 
 
@@ -213,8 +229,8 @@ public abstract class AbstractJmsListenerContainerFactory<C extends AbstractMess
 			instance.setAutoStartup(this.autoStartup);
 		}
 
-		endpoint.setupListenerContainer(instance);
 		initializeContainer(instance);
+		endpoint.setupListenerContainer(instance);
 
 		return instance;
 	}

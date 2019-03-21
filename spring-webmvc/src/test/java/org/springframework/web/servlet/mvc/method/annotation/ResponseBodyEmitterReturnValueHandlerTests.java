@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.servlet.mvc.method.annotation;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,17 +43,10 @@ import org.springframework.web.context.request.async.StandardServletAsyncWebRequ
 import org.springframework.web.context.request.async.WebAsyncUtils;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.springframework.core.ResolvableType.forClassWithGenerics;
-import static org.springframework.web.method.ResolvableMethod.on;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.core.ResolvableType.*;
+import static org.springframework.web.method.ResolvableMethod.*;
 
 /**
  * Unit tests for ResponseBodyEmitterReturnValueHandler.
@@ -175,6 +170,25 @@ public class ResponseBodyEmitterReturnValueHandlerTests {
 		verify(asyncWebRequest).startAsync();
 	}
 
+	@SuppressWarnings("unchecked")
+	@Test
+	public void responseBodyEmitterWithErrorValue() throws Exception {
+
+		AsyncWebRequest asyncWebRequest = mock(AsyncWebRequest.class);
+		WebAsyncUtils.getAsyncManager(this.request).setAsyncWebRequest(asyncWebRequest);
+
+		ResponseBodyEmitter emitter = new ResponseBodyEmitter(19000L);
+		emitter.onError(mock(Consumer.class));
+		emitter.onCompletion(mock(Runnable.class));
+
+		MethodParameter type = on(TestController.class).resolveReturnType(ResponseBodyEmitter.class);
+		this.handler.handleReturnValue(emitter, type, this.mavContainer, this.webRequest);
+
+		verify(asyncWebRequest).addErrorHandler(any(Consumer.class));
+		verify(asyncWebRequest, times(2)).addCompletionHandler(any(Runnable.class));
+		verify(asyncWebRequest).startAsync();
+	}
+
 	@Test
 	public void sseEmitter() throws Exception {
 		MethodParameter type = on(TestController.class).resolveReturnType(SseEmitter.class);
@@ -270,6 +284,21 @@ public class ResponseBodyEmitterReturnValueHandlerTests {
 		assertEquals("foobarbaz", this.response.getContentAsString());
 	}
 
+	@Test // SPR-17076
+	public void responseEntityFluxWithCustomHeader() throws Exception {
+
+		EmitterProcessor<SimpleBean> processor = EmitterProcessor.create();
+		ResponseEntity<Flux<SimpleBean>> entity = ResponseEntity.ok().header("x-foo", "bar").body(processor);
+		ResolvableType bodyType = forClassWithGenerics(Flux.class, SimpleBean.class);
+		MethodParameter type = on(TestController.class).resolveReturnType(ResponseEntity.class, bodyType);
+		this.handler.handleReturnValue(entity, type, this.mavContainer, this.webRequest);
+
+		assertTrue(this.request.isAsyncStarted());
+		assertEquals(200, this.response.getStatus());
+		assertEquals("bar", this.response.getHeader("x-foo"));
+		assertFalse(this.response.isCommitted());
+	}
+
 
 	@SuppressWarnings("unused")
 	private static class TestController {
@@ -286,15 +315,17 @@ public class ResponseBodyEmitterReturnValueHandlerTests {
 
 		private ResponseEntity<AtomicReference<String>> h6() { return null; }
 
-		private ResponseEntity h7() { return null; }
+		private ResponseEntity<?> h7() { return null; }
 
 		private Flux<String> h8() { return null; }
 
 		private ResponseEntity<Flux<String>> h9() { return null; }
 
+		private ResponseEntity<Flux<SimpleBean>> h10() { return null; }
 	}
 
 
+	@SuppressWarnings("unused")
 	private static class SimpleBean {
 
 		private Long id;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,12 +33,12 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.ManagedList;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ApplicationObjectSupport;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.Nullable;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.context.WebApplicationContext;
@@ -308,7 +308,7 @@ public class ComplexWebApplicationContext extends StaticWebApplicationContext {
 
 		@Override
 		public void postHandle(
-				HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)
+				HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable ModelAndView modelAndView)
 				throws ServletException {
 
 			if (request.getAttribute("test2x") != null) {
@@ -356,7 +356,7 @@ public class ComplexWebApplicationContext extends StaticWebApplicationContext {
 
 		@Override
 		public void postHandle(
-				HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)
+				HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable ModelAndView modelAndView)
 				throws ServletException {
 
 			if (request.getParameter("noView") != null) {
@@ -395,12 +395,12 @@ public class ComplexWebApplicationContext extends StaticWebApplicationContext {
 		}
 
 		@Override
-		public void postHandle(WebRequest request, ModelMap model) throws Exception {
+		public void postHandle(WebRequest request, @Nullable ModelMap model) throws Exception {
 			request.setAttribute("test3x", "test3x", WebRequest.SCOPE_REQUEST);
 		}
 
 		@Override
-		public void afterCompletion(WebRequest request, Exception ex) throws Exception {
+		public void afterCompletion(WebRequest request, @Nullable Exception ex) throws Exception {
 			request.setAttribute("test3y", "test3y", WebRequest.SCOPE_REQUEST);
 		}
 	}
@@ -518,15 +518,13 @@ public class ComplexWebApplicationContext extends StaticWebApplicationContext {
 	}
 
 
-	public static class TestApplicationListener implements ApplicationListener<ApplicationEvent> {
+	public static class TestApplicationListener implements ApplicationListener<RequestHandledEvent> {
 
 		public int counter = 0;
 
 		@Override
-		public void onApplicationEvent(ApplicationEvent event) {
-			if (event instanceof RequestHandledEvent) {
-				this.counter++;
-			}
+		public void onApplicationEvent(RequestHandledEvent event) {
+			this.counter++;
 		}
 	}
 

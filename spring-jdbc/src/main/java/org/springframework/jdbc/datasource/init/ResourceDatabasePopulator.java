@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import javax.sql.DataSource;
 
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.EncodedResource;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -54,6 +55,7 @@ public class ResourceDatabasePopulator implements DatabasePopulator {
 
 	List<Resource> scripts = new ArrayList<>();
 
+	@Nullable
 	private String sqlScriptEncoding;
 
 	private String separator = ScriptUtils.DEFAULT_STATEMENT_SEPARATOR;
@@ -74,7 +76,6 @@ public class ResourceDatabasePopulator implements DatabasePopulator {
 	 * @since 4.0.3
 	 */
 	public ResourceDatabasePopulator() {
-		/* no-op */
 	}
 
 	/**
@@ -85,7 +86,6 @@ public class ResourceDatabasePopulator implements DatabasePopulator {
 	 * @since 4.0.3
 	 */
 	public ResourceDatabasePopulator(Resource... scripts) {
-		this();
 		setScripts(scripts);
 	}
 
@@ -95,19 +95,19 @@ public class ResourceDatabasePopulator implements DatabasePopulator {
 	 * logged but not cause a failure
 	 * @param ignoreFailedDrops flag to indicate that a failed SQL {@code DROP}
 	 * statement can be ignored
-	 * @param sqlScriptEncoding the encoding for the supplied SQL scripts; may
-	 * be {@code null} or <em>empty</em> to indicate platform encoding
+	 * @param sqlScriptEncoding the encoding for the supplied SQL scripts
+	 * (may be {@code null} or <em>empty</em> to indicate platform encoding)
 	 * @param scripts the scripts to execute to initialize or clean up the database
 	 * (never {@code null})
 	 * @since 4.0.3
 	 */
 	public ResourceDatabasePopulator(boolean continueOnError, boolean ignoreFailedDrops,
-			String sqlScriptEncoding, Resource... scripts) {
+			@Nullable String sqlScriptEncoding, Resource... scripts) {
 
-		this(scripts);
 		this.continueOnError = continueOnError;
 		this.ignoreFailedDrops = ignoreFailedDrops;
 		setSqlScriptEncoding(sqlScriptEncoding);
+		setScripts(scripts);
 	}
 
 
@@ -146,14 +146,14 @@ public class ResourceDatabasePopulator implements DatabasePopulator {
 	}
 
 	/**
-	 * Specify the encoding for the configured SQL scripts, if different from the
-	 * platform encoding.
-	 * @param sqlScriptEncoding the encoding used in scripts; may be {@code null}
-	 * or empty to indicate platform encoding
+	 * Specify the encoding for the configured SQL scripts,
+	 * if different from the platform encoding.
+	 * @param sqlScriptEncoding the encoding used in scripts
+	 * (may be {@code null} or empty to indicate platform encoding)
 	 * @see #addScript(Resource)
 	 */
-	public void setSqlScriptEncoding(String sqlScriptEncoding) {
-		this.sqlScriptEncoding = StringUtils.hasText(sqlScriptEncoding) ? sqlScriptEncoding : null;
+	public void setSqlScriptEncoding(@Nullable String sqlScriptEncoding) {
+		this.sqlScriptEncoding = (StringUtils.hasText(sqlScriptEncoding) ? sqlScriptEncoding : null);
 	}
 
 	/**

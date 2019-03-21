@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
 
 package org.springframework.context.event;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +34,8 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
+import org.springframework.lang.Nullable;
+import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ObjectUtils;
 
@@ -63,8 +66,10 @@ public abstract class AbstractApplicationEventMulticaster
 
 	final Map<ListenerCacheKey, ListenerRetriever> retrieverCache = new ConcurrentHashMap<>(64);
 
+	@Nullable
 	private ClassLoader beanClassLoader;
 
+	@Nullable
 	private BeanFactory beanFactory;
 
 	private Object retrievalMutex = this.defaultRetriever;
@@ -207,9 +212,9 @@ public abstract class AbstractApplicationEventMulticaster
 	 * @return the pre-filtered list of application listeners for the given event and source type
 	 */
 	private Collection<ApplicationListener<?>> retrieveApplicationListeners(
-			ResolvableType eventType, Class<?> sourceType, ListenerRetriever retriever) {
+			ResolvableType eventType, @Nullable Class<?> sourceType, @Nullable ListenerRetriever retriever) {
 
-		LinkedList<ApplicationListener<?>> allListeners = new LinkedList<>();
+		List<ApplicationListener<?>> allListeners = new ArrayList<>();
 		Set<ApplicationListener<?>> listeners;
 		Set<String> listenerBeans;
 		synchronized (this.retrievalMutex) {
@@ -234,7 +239,12 @@ public abstract class AbstractApplicationEventMulticaster
 								beanFactory.getBean(listenerBeanName, ApplicationListener.class);
 						if (!allListeners.contains(listener) && supportsEvent(listener, eventType, sourceType)) {
 							if (retriever != null) {
-								retriever.applicationListenerBeans.add(listenerBeanName);
+								if (beanFactory.isSingleton(listenerBeanName)) {
+									retriever.applicationListeners.add(listener);
+								}
+								else {
+									retriever.applicationListenerBeans.add(listenerBeanName);
+								}
 							}
 							allListeners.add(listener);
 						}
@@ -247,6 +257,10 @@ public abstract class AbstractApplicationEventMulticaster
 			}
 		}
 		AnnotationAwareOrderComparator.sort(allListeners);
+		if (retriever != null && retriever.applicationListenerBeans.isEmpty()) {
+			retriever.applicationListeners.clear();
+			retriever.applicationListeners.addAll(allListeners);
+		}
 		return allListeners;
 	}
 
@@ -255,7 +269,7 @@ public abstract class AbstractApplicationEventMulticaster
 	 * type before trying to instantiate it.
 	 * <p>If this method returns {@code true} for a given listener as a first pass,
 	 * the listener instance will get retrieved and fully evaluated through a
-	 * {@link #supportsEvent(ApplicationListener,ResolvableType, Class)}  call afterwards.
+	 * {@link #supportsEvent(ApplicationListener, ResolvableType, Class)} call afterwards.
 	 * @param listenerType the listener's type as determined by the BeanFactory
 	 * @param eventType the event type to check
 	 * @return whether the given listener should be included in the candidates
@@ -282,7 +296,9 @@ public abstract class AbstractApplicationEventMulticaster
 	 * @return whether the given listener should be included in the candidates
 	 * for the given event type
 	 */
-	protected boolean supportsEvent(ApplicationListener<?> listener, ResolvableType eventType, Class<?> sourceType) {
+	protected boolean supportsEvent(
+			ApplicationListener<?> listener, ResolvableType eventType, @Nullable Class<?> sourceType) {
+
 		GenericApplicationListener smartListener = (listener instanceof GenericApplicationListener ?
 				(GenericApplicationListener) listener : new GenericApplicationListenerAdapter(listener));
 		return (smartListener.supportsEventType(eventType) && smartListener.supportsSourceType(sourceType));
@@ -296,9 +312,11 @@ public abstract class AbstractApplicationEventMulticaster
 
 		private final ResolvableType eventType;
 
+		@Nullable
 		private final Class<?> sourceType;
 
-		public ListenerCacheKey(ResolvableType eventType, Class<?> sourceType) {
+		public ListenerCacheKey(ResolvableType eventType, @Nullable Class<?> sourceType) {
+			Assert.notNull(eventType, "Event type must not be null");
 			this.eventType = eventType;
 			this.sourceType = sourceType;
 		}
@@ -309,27 +327,30 @@ public abstract class AbstractApplicationEventMulticaster
 				return true;
 			}
 			ListenerCacheKey otherKey = (ListenerCacheKey) other;
-			return (ObjectUtils.nullSafeEquals(this.eventType, otherKey.eventType) &&
+			return (this.eventType.equals(otherKey.eventType) &&
 					ObjectUtils.nullSafeEquals(this.sourceType, otherKey.sourceType));
 		}
 
 		@Override
 		public int hashCode() {
-			return (ObjectUtils.nullSafeHashCode(this.eventType) * 29 + ObjectUtils.nullSafeHashCode(this.sourceType));
+			return this.eventType.hashCode() * 29 + ObjectUtils.nullSafeHashCode(this.sourceType);
 		}
 
 		@Override
 		public String toString() {
-			return "ListenerCacheKey [eventType = " + this.eventType + ", sourceType = " + this.sourceType.getName() + "]";
+			return "ListenerCacheKey [eventType = " + this.eventType + ", sourceType = " + this.sourceType + "]";
 		}
 
 		@Override
 		public int compareTo(ListenerCacheKey other) {
-			int result = 0;
-			if (this.eventType != null) {
-				result = this.eventType.toString().compareTo(other.eventType.toString());
-			}
-			if (result == 0 && this.sourceType != null) {
+			int result = this.eventType.toString().compareTo(other.eventType.toString());
+			if (result == 0) {
+				if (this.sourceType == null) {
+					return (other.sourceType == null ? 0 : -1);
+				}
+				if (other.sourceType == null) {
+					return 1;
+				}
 				result = this.sourceType.getName().compareTo(other.sourceType.getName());
 			}
 			return result;
@@ -344,23 +365,20 @@ public abstract class AbstractApplicationEventMulticaster
 	 */
 	private class ListenerRetriever {
 
-		public final Set<ApplicationListener<?>> applicationListeners;
+		public final Set<ApplicationListener<?>> applicationListeners = new LinkedHashSet<>();
 
-		public final Set<String> applicationListenerBeans;
+		public final Set<String> applicationListenerBeans = new LinkedHashSet<>();
 
 		private final boolean preFiltered;
 
 		public ListenerRetriever(boolean preFiltered) {
-			this.applicationListeners = new LinkedHashSet<>();
-			this.applicationListenerBeans = new LinkedHashSet<>();
 			this.preFiltered = preFiltered;
 		}
 
 		public Collection<ApplicationListener<?>> getApplicationListeners() {
-			LinkedList<ApplicationListener<?>> allListeners = new LinkedList<>();
-			for (ApplicationListener<?> listener : this.applicationListeners) {
-				allListeners.add(listener);
-			}
+			List<ApplicationListener<?>> allListeners = new ArrayList<>(
+					this.applicationListeners.size() + this.applicationListenerBeans.size());
+			allListeners.addAll(this.applicationListeners);
 			if (!this.applicationListenerBeans.isEmpty()) {
 				BeanFactory beanFactory = getBeanFactory();
 				for (String listenerBeanName : this.applicationListenerBeans) {
@@ -376,7 +394,9 @@ public abstract class AbstractApplicationEventMulticaster
 					}
 				}
 			}
-			AnnotationAwareOrderComparator.sort(allListeners);
+			if (!this.preFiltered || !this.applicationListenerBeans.isEmpty()) {
+				AnnotationAwareOrderComparator.sort(allListeners);
+			}
 			return allListeners;
 		}
 	}

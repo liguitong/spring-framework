@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import javax.websocket.PongMessage;
 import javax.websocket.Session;
 
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -36,7 +37,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 /**
  * Adapter for Java WebSocket API (JSR-356) that delegates events to a reactive
  * {@link WebSocketHandler} and its session.
- * 
+ *
  * @author Violeta Georgieva
  * @author Rossen Stoyanchev
  * @since 5.0
@@ -47,6 +48,7 @@ public class StandardWebSocketHandlerAdapter extends Endpoint {
 
 	private Function<Session, StandardWebSocketSession> sessionFactory;
 
+	@Nullable
 	private StandardWebSocketSession delegateSession;
 
 
@@ -62,8 +64,8 @@ public class StandardWebSocketHandlerAdapter extends Endpoint {
 
 	@Override
 	public void onOpen(Session session, EndpointConfig config) {
-
 		this.delegateSession = this.sessionFactory.apply(session);
+		Assert.state(this.delegateSession != null, "No delegate session");
 
 		session.addMessageHandler(String.class, message -> {
 			WebSocketMessage webSocketMessage = toMessage(message);
@@ -78,7 +80,9 @@ public class StandardWebSocketHandlerAdapter extends Endpoint {
 			this.delegateSession.handleMessage(webSocketMessage.getType(), webSocketMessage);
 		});
 
-		this.delegateHandler.handle(this.delegateSession).subscribe(this.delegateSession);
+		this.delegateHandler.handle(this.delegateSession)
+				.checkpoint(session.getRequestURI() + " [StandardWebSocketHandlerAdapter]")
+				.subscribe(this.delegateSession);
 	}
 
 	private <T> WebSocketMessage toMessage(T message) {

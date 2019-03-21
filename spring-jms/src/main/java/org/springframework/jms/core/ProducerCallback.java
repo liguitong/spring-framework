@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.springframework.lang.Nullable;
+
 /**
  * Callback for sending a message to a JMS destination.
  *
@@ -32,6 +34,7 @@ import javax.jms.Session;
  *
  * @author Mark Pollack
  * @since 1.1
+ * @param <T> the result type
  * @see JmsTemplate#execute(ProducerCallback)
  * @see JmsTemplate#execute(javax.jms.Destination, ProducerCallback)
  * @see JmsTemplate#execute(String, ProducerCallback)
@@ -49,6 +52,7 @@ public interface ProducerCallback<T> {
 	 * (or {@code null} if none)
 	 * @throws javax.jms.JMSException if thrown by JMS API methods
 	 */
+	@Nullable
 	T doInJms(Session session, MessageProducer producer) throws JMSException;
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,9 @@
 
 package org.springframework.web.reactive.function;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.springframework.http.ReactiveHttpInputMessage;
 import org.springframework.http.codec.HttpMessageReader;
@@ -52,11 +51,10 @@ public interface BodyExtractor<T, M extends ReactiveHttpInputMessage> {
 	interface Context {
 
 		/**
-		 * Supply a {@linkplain Stream stream} of {@link HttpMessageReader}s
-		 * to be used for body extraction.
+		 * Return the {@link HttpMessageReader HttpMessageReaders} to be used for body extraction.
 		 * @return the stream of message readers
 		 */
-		Supplier<Stream<HttpMessageReader<?>>> messageReaders();
+		List<HttpMessageReader<?>> messageReaders();
 
 		/**
 		 * Optionally return the {@link ServerHttpResponse}, if present.

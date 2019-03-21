@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 package org.springframework.web.context.support;
 
-import java.util.Arrays;
+import java.lang.annotation.Annotation;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -27,7 +29,9 @@ import org.springframework.context.annotation.AnnotationConfigRegistry;
 import org.springframework.context.annotation.AnnotationConfigUtils;
 import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 import org.springframework.context.annotation.ScopeMetadataResolver;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ContextLoader;
 
@@ -82,13 +86,17 @@ import org.springframework.web.context.ContextLoader;
 public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWebApplicationContext
 		implements AnnotationConfigRegistry {
 
+	@Nullable
 	private BeanNameGenerator beanNameGenerator;
 
+	@Nullable
 	private ScopeMetadataResolver scopeMetadataResolver;
 
 	private final Set<Class<?>> annotatedClasses = new LinkedHashSet<>();
 
 	private final Set<String> basePackages = new LinkedHashSet<>();
+
+	private final Set<BeanRegistration> registeredBeans = new LinkedHashSet<>();
 
 
 	/**
@@ -98,7 +106,7 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * @see AnnotatedBeanDefinitionReader#setBeanNameGenerator
 	 * @see ClassPathBeanDefinitionScanner#setBeanNameGenerator
 	 */
-	public void setBeanNameGenerator(BeanNameGenerator beanNameGenerator) {
+	public void setBeanNameGenerator(@Nullable BeanNameGenerator beanNameGenerator) {
 		this.beanNameGenerator = beanNameGenerator;
 	}
 
@@ -106,6 +114,7 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * Return the custom {@link BeanNameGenerator} for use with {@link AnnotatedBeanDefinitionReader}
 	 * and/or {@link ClassPathBeanDefinitionScanner}, if any.
 	 */
+	@Nullable
 	protected BeanNameGenerator getBeanNameGenerator() {
 		return this.beanNameGenerator;
 	}
@@ -117,7 +126,7 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * @see AnnotatedBeanDefinitionReader#setScopeMetadataResolver
 	 * @see ClassPathBeanDefinitionScanner#setScopeMetadataResolver
 	 */
-	public void setScopeMetadataResolver(ScopeMetadataResolver scopeMetadataResolver) {
+	public void setScopeMetadataResolver(@Nullable ScopeMetadataResolver scopeMetadataResolver) {
 		this.scopeMetadataResolver = scopeMetadataResolver;
 	}
 
@@ -125,6 +134,7 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * Return the custom {@link ScopeMetadataResolver} for use with {@link AnnotatedBeanDefinitionReader}
 	 * and/or {@link ClassPathBeanDefinitionScanner}, if any.
 	 */
+	@Nullable
 	protected ScopeMetadataResolver getScopeMetadataResolver() {
 		return this.scopeMetadataResolver;
 	}
@@ -134,16 +144,16 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * Register one or more annotated classes to be processed.
 	 * <p>Note that {@link #refresh()} must be called in order for the context
 	 * to fully process the new classes.
-	 * @param annotatedClasses one or more annotated classes,
-	 * e.g. {@link org.springframework.context.annotation.Configuration @Configuration} classes
+	 * @param annotatedClasses one or more annotated classes, e.g.
+	 * {@link org.springframework.context.annotation.Configuration @Configuration} classes
 	 * @see #scan(String...)
 	 * @see #loadBeanDefinitions(DefaultListableBeanFactory)
-	 * @see #setConfigLocation(String)
 	 * @see #refresh()
 	 */
-	public void register(Class<?>... annotatedClasses) {
+	@Override
+	public final void register(Class<?>... annotatedClasses) {
 		Assert.notEmpty(annotatedClasses, "At least one annotated class must be specified");
-		this.annotatedClasses.addAll(Arrays.asList(annotatedClasses));
+		Collections.addAll(this.annotatedClasses, annotatedClasses);
 	}
 
 	/**
@@ -151,14 +161,56 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * <p>Note that {@link #refresh()} must be called in order for the context
 	 * to fully process the new classes.
 	 * @param basePackages the packages to check for annotated classes
-	 * @see #loadBeanDefinitions(DefaultListableBeanFactory)
 	 * @see #register(Class...)
-	 * @see #setConfigLocation(String)
+	 * @see #loadBeanDefinitions(DefaultListableBeanFactory)
 	 * @see #refresh()
 	 */
-	public void scan(String... basePackages) {
+	@Override
+	public final void scan(String... basePackages) {
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
-		this.basePackages.addAll(Arrays.asList(basePackages));
+		Collections.addAll(this.basePackages, basePackages);
+	}
+
+	/**
+	 * Register a bean from the given bean class, deriving its metadata from
+	 * class-declared annotations.
+	 * <p>Note that {@link #refresh()} must be called in order for the context
+	 * to fully process the new classes.
+	 * @param annotatedClass the class of the bean
+	 * @param qualifiers specific qualifier annotations to consider,
+	 * in addition to qualifiers at the bean class level (may be empty)
+	 * @since 5.2
+	 * @see #register(Class...)
+	 * @see #loadBeanDefinitions(DefaultListableBeanFactory)
+	 * @see #refresh()
+	 */
+	@Override
+	@SafeVarargs
+	@SuppressWarnings("varargs")
+	public final <T> void registerBean(Class<T> annotatedClass, Class<? extends Annotation>... qualifiers) {
+		this.registeredBeans.add(new BeanRegistration(annotatedClass, null, qualifiers));
+	}
+
+	/**
+	 * Register a bean from the given bean class, deriving its metadata from
+	 * class-declared annotations.
+	 * <p>Note that {@link #refresh()} must be called in order for the context
+	 * to fully process the new classes.
+	 * @param annotatedClass the class of the bean
+	 * @param qualifiers specific qualifier annotations to consider,
+	 * in addition to qualifiers at the bean class level (may be empty)
+	 * @since 5.2
+	 * @see #register(Class...)
+	 * @see #loadBeanDefinitions(DefaultListableBeanFactory)
+	 * @see #refresh()
+	 */
+	@Override
+	@SafeVarargs
+	@SuppressWarnings("varargs")
+	public final <T> void registerBean(
+			Class<T> annotatedClass, Supplier<T> supplier, Class<? extends Annotation>... qualifiers) {
+
+		this.registeredBeans.add(new BeanRegistration(annotatedClass, supplier, qualifiers));
 	}
 
 
@@ -185,6 +237,7 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 * @see ClassPathBeanDefinitionScanner
 	 */
 	@Override
+	@SuppressWarnings("unchecked")
 	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) {
 		AnnotatedBeanDefinitionReader reader = getAnnotatedBeanDefinitionReader(beanFactory);
 		ClassPathBeanDefinitionScanner scanner = getClassPathBeanDefinitionScanner(beanFactory);
@@ -203,44 +256,48 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 		}
 
 		if (!this.annotatedClasses.isEmpty()) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Registering annotated classes: [" +
+			if (logger.isDebugEnabled()) {
+				logger.debug("Registering annotated classes: [" +
 						StringUtils.collectionToCommaDelimitedString(this.annotatedClasses) + "]");
 			}
-			reader.register(this.annotatedClasses.toArray(new Class<?>[this.annotatedClasses.size()]));
+			reader.register(ClassUtils.toClassArray(this.annotatedClasses));
 		}
 
 		if (!this.basePackages.isEmpty()) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Scanning base packages: [" +
+			if (logger.isDebugEnabled()) {
+				logger.debug("Scanning base packages: [" +
 						StringUtils.collectionToCommaDelimitedString(this.basePackages) + "]");
 			}
-			scanner.scan(this.basePackages.toArray(new String[this.basePackages.size()]));
+			scanner.scan(StringUtils.toStringArray(this.basePackages));
+		}
+
+		if (!this.registeredBeans.isEmpty()) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Registering supplied beans: [" +
+						StringUtils.collectionToCommaDelimitedString(this.registeredBeans) + "]");
+			}
+			this.registeredBeans.forEach(reg ->
+					reader.registerBean(reg.getAnnotatedClass(), reg.getSupplier(), reg.getQualifiers()));
 		}
 
 		String[] configLocations = getConfigLocations();
 		if (configLocations != null) {
 			for (String configLocation : configLocations) {
 				try {
-					Class<?> clazz = getClassLoader().loadClass(configLocation);
-					if (logger.isInfoEnabled()) {
-						logger.info("Successfully resolved class for [" + configLocation + "]");
+					Class<?> clazz = ClassUtils.forName(configLocation, getClassLoader());
+					if (logger.isTraceEnabled()) {
+						logger.trace("Registering [" + configLocation + "]");
 					}
 					reader.register(clazz);
 				}
 				catch (ClassNotFoundException ex) {
-					if (logger.isDebugEnabled()) {
-						logger.debug("Could not load class for config location [" + configLocation +
+					if (logger.isTraceEnabled()) {
+						logger.trace("Could not load class for config location [" + configLocation +
 								"] - trying package scan. " + ex);
 					}
 					int count = scanner.scan(configLocation);
-					if (logger.isInfoEnabled()) {
-						if (count == 0) {
-							logger.info("No annotated classes found for specified class/package [" + configLocation + "]");
-						}
-						else {
-							logger.info("Found " + count + " annotated classes in package [" + configLocation + "]");
-						}
+					if (count == 0 && logger.isDebugEnabled()) {
+						logger.debug("No annotated classes found for specified class/package [" + configLocation + "]");
 					}
 				}
 			}
@@ -274,6 +331,48 @@ public class AnnotationConfigWebApplicationContext extends AbstractRefreshableWe
 	 */
 	protected ClassPathBeanDefinitionScanner getClassPathBeanDefinitionScanner(DefaultListableBeanFactory beanFactory) {
 		return new ClassPathBeanDefinitionScanner(beanFactory, true, getEnvironment());
+	}
+
+
+	/**
+	 * Holder for a programmatic bean registration.
+	 * @see #registerBean(Class, Class[])
+	 * @see #registerBean(Class, Supplier, Class[])
+	 */
+	private static class BeanRegistration {
+
+		private final Class<?> annotatedClass;
+
+		@Nullable
+		private final Supplier<?> supplier;
+
+		private final Class<? extends Annotation>[] qualifiers;
+
+		public BeanRegistration(
+				Class<?> annotatedClass, @Nullable Supplier<?> supplier, Class<? extends Annotation>[] qualifiers) {
+			this.annotatedClass = annotatedClass;
+			this.supplier = supplier;
+			this.qualifiers = qualifiers;
+		}
+
+		public Class<?> getAnnotatedClass() {
+			return this.annotatedClass;
+		}
+
+		@Nullable
+		@SuppressWarnings("rawtypes")
+		public Supplier getSupplier() {
+			return this.supplier;
+		}
+
+		public Class<? extends Annotation>[] getQualifiers() {
+			return this.qualifiers;
+		}
+
+		@Override
+		public String toString() {
+			return this.annotatedClass.getName();
+		}
 	}
 
 }

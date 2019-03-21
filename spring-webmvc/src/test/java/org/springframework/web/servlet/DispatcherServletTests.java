@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,14 +99,6 @@ public class DispatcherServletTests {
 
 	private ServletContext getServletContext() {
 		return servletConfig.getServletContext();
-	}
-
-	@Test
-	public void dispatcherServletGetServletNameDoesNotFailWithoutConfig() {
-		DispatcherServlet ds = new DispatcherServlet();
-		assertNull(ds.getServletConfig());
-		assertNull(ds.getServletName());
-		assertNull(ds.getServletContext());
 	}
 
 	@Test
@@ -572,7 +564,7 @@ public class DispatcherServletTests {
 		}
 		catch (ServletException ex) {
 			// expected
-			assertTrue(ex.getMessage().indexOf("No adapter for handler") != -1);
+			assertTrue(ex.getMessage().contains("No adapter for handler"));
 		}
 	}
 
@@ -592,7 +584,7 @@ public class DispatcherServletTests {
 		}
 		catch (ServletException ex) {
 			// expected
-			assertTrue(ex.getMessage().indexOf("failed0") != -1);
+			assertTrue(ex.getMessage().contains("failed0"));
 		}
 	}
 
@@ -888,7 +880,8 @@ public class DispatcherServletTests {
 	}
 
 
-	private static class TestWebContextInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
+	private static class TestWebContextInitializer
+			implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
 		@Override
 		public void initialize(ConfigurableWebApplicationContext applicationContext) {
@@ -897,7 +890,8 @@ public class DispatcherServletTests {
 	}
 
 
-	private static class OtherWebContextInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
+	private static class OtherWebContextInitializer
+			implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
 		@Override
 		public void initialize(ConfigurableWebApplicationContext applicationContext) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ResolvableType;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.converter.MessageConversionException;
 import org.springframework.messaging.converter.MessageConverter;
@@ -42,6 +43,7 @@ import org.springframework.util.StringUtils;
  */
 public class MessageMethodArgumentResolver implements HandlerMethodArgumentResolver {
 
+	@Nullable
 	private final MessageConverter converter;
 
 
@@ -57,7 +59,7 @@ public class MessageMethodArgumentResolver implements HandlerMethodArgumentResol
 	 * @param converter the MessageConverter to use (may be {@code null})
 	 * @since 4.3
 	 */
-	public MessageMethodArgumentResolver(MessageConverter converter) {
+	public MessageMethodArgumentResolver(@Nullable MessageConverter converter) {
 		this.converter = converter;
 	}
 
@@ -79,7 +81,7 @@ public class MessageMethodArgumentResolver implements HandlerMethodArgumentResol
 		}
 
 		Object payload = message.getPayload();
-		if (payload == null || targetPayloadType.isInstance(payload)) {
+		if (targetPayloadType.isInstance(payload)) {
 			return message;
 		}
 
@@ -96,14 +98,14 @@ public class MessageMethodArgumentResolver implements HandlerMethodArgumentResol
 	private Class<?> getPayloadType(MethodParameter parameter) {
 		Type genericParamType = parameter.getGenericParameterType();
 		ResolvableType resolvableType = ResolvableType.forType(genericParamType).as(Message.class);
-		return resolvableType.getGeneric(0).resolve(Object.class);
+		return resolvableType.getGeneric().toClass();
 	}
 
 	/**
 	 * Check if the given {@code payload} is empty.
 	 * @param payload the payload to check (can be {@code null})
 	 */
-	protected boolean isEmptyPayload(Object payload) {
+	protected boolean isEmptyPayload(@Nullable Object payload) {
 		if (payload == null) {
 			return true;
 		}

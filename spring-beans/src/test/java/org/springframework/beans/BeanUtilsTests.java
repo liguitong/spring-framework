@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.beans;
 
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceEditor;
+import org.springframework.lang.Nullable;
 import org.springframework.tests.sample.beans.DerivedTestBean;
 import org.springframework.tests.sample.beans.ITestBean;
 import org.springframework.tests.sample.beans.TestBean;
@@ -40,6 +42,7 @@ import static org.junit.Assert.*;
  * @author Juergen Hoeller
  * @author Rob Harrop
  * @author Chris Beams
+ * @author Sebastien Deleuze
  * @since 19.05.2003
  */
 public class BeanUtilsTests {
@@ -66,6 +69,31 @@ public class BeanUtilsTests {
 		catch (FatalBeanException ex) {
 			// expected
 		}
+	}
+
+	@Test  // gh-22531
+	public void testInstantiateClassWithOptionalNullableType() throws NoSuchMethodException {
+		Constructor<BeanWithNullableTypes> ctor = BeanWithNullableTypes.class.getDeclaredConstructor(
+				Integer.class, Boolean.class, String.class);
+		BeanWithNullableTypes bean = BeanUtils.instantiateClass(ctor, null, null, "foo");
+		assertNull(bean.getCounter());
+		assertNull(bean.isFlag());
+		assertEquals("foo", bean.getValue());
+	}
+
+	@Test  // gh-22531
+	public void testInstantiateClassWithOptionalPrimitiveType() throws NoSuchMethodException {
+		Constructor<BeanWithPrimitiveTypes> ctor = BeanWithPrimitiveTypes.class.getDeclaredConstructor(int.class, boolean.class, String.class);
+		BeanWithPrimitiveTypes bean = BeanUtils.instantiateClass(ctor, null, null, "foo");
+		assertEquals(0, bean.getCounter());
+		assertEquals(false, bean.isFlag());
+		assertEquals("foo", bean.getValue());
+	}
+
+	@Test(expected = BeanInstantiationException.class)  // gh-22531
+	public void testInstantiateClassWithMoreArgsThanParameters() throws NoSuchMethodException {
+		Constructor<BeanWithPrimitiveTypes> ctor = BeanWithPrimitiveTypes.class.getDeclaredConstructor(int.class, boolean.class, String.class);
+		BeanUtils.instantiateClass(ctor, null, null, "foo", null);
 	}
 
 	@Test
@@ -193,7 +221,7 @@ public class BeanUtilsTests {
 		source.setFlag2(true);
 		InvalidProperty target = new InvalidProperty();
 		BeanUtils.copyProperties(source, target);
-		assertEquals(target.getName(), "name");
+		assertEquals("name", target.getName());
 		assertTrue(target.getFlag1());
 		assertTrue(target.getFlag2());
 	}
@@ -226,14 +254,14 @@ public class BeanUtilsTests {
 
 	@Test
 	public void testResolveWithAndWithoutArgList() throws Exception {
-		Method desiredMethod = MethodSignatureBean.class.getMethod("doSomethingElse", new Class[]{String.class, int.class});
+		Method desiredMethod = MethodSignatureBean.class.getMethod("doSomethingElse", String.class, int.class);
 		assertSignatureEquals(desiredMethod, "doSomethingElse");
 		assertNull(BeanUtils.resolveSignature("doSomethingElse()", MethodSignatureBean.class));
 	}
 
 	@Test
 	public void testResolveTypedSignature() throws Exception {
-		Method desiredMethod = MethodSignatureBean.class.getMethod("doSomethingElse", new Class[]{String.class, int.class});
+		Method desiredMethod = MethodSignatureBean.class.getMethod("doSomethingElse", String.class, int.class);
 		assertSignatureEquals(desiredMethod, "doSomethingElse(java.lang.String, int)");
 	}
 
@@ -244,20 +272,20 @@ public class BeanUtilsTests {
 		assertSignatureEquals(desiredMethod, "overloaded()");
 
 		// resolve with single arg
-		desiredMethod = MethodSignatureBean.class.getMethod("overloaded", new Class[]{String.class});
+		desiredMethod = MethodSignatureBean.class.getMethod("overloaded", String.class);
 		assertSignatureEquals(desiredMethod, "overloaded(java.lang.String)");
 
 		// resolve with two args
-		desiredMethod = MethodSignatureBean.class.getMethod("overloaded", new Class[]{String.class, BeanFactory.class});
+		desiredMethod = MethodSignatureBean.class.getMethod("overloaded", String.class, BeanFactory.class);
 		assertSignatureEquals(desiredMethod, "overloaded(java.lang.String, org.springframework.beans.factory.BeanFactory)");
 	}
 
 	@Test
 	public void testResolveSignatureWithArray() throws Exception {
-		Method desiredMethod = MethodSignatureBean.class.getMethod("doSomethingWithAnArray", new Class[]{String[].class});
+		Method desiredMethod = MethodSignatureBean.class.getMethod("doSomethingWithAnArray", String[].class);
 		assertSignatureEquals(desiredMethod, "doSomethingWithAnArray(java.lang.String[])");
 
-		desiredMethod = MethodSignatureBean.class.getMethod("doSomethingWithAMultiDimensionalArray", new Class[]{String[][].class});
+		desiredMethod = MethodSignatureBean.class.getMethod("doSomethingWithAMultiDimensionalArray", String[][].class);
 		assertSignatureEquals(desiredMethod, "doSomethingWithAMultiDimensionalArray(java.lang.String[][])");
 	}
 
@@ -442,6 +470,75 @@ public class BeanUtilsTests {
 		@Override
 		public void setValue(String aValue) {
 			value = aValue;
+		}
+	}
+
+	private static class BeanWithSingleNonDefaultConstructor {
+
+		private final String name;
+
+		public BeanWithSingleNonDefaultConstructor(String name) {
+			this.name = name;
+		}
+
+		public String getName() {
+			return name;
+		}
+	}
+
+	private static class BeanWithNullableTypes {
+
+		private Integer counter;
+
+		private Boolean flag;
+
+		private String value;
+
+		public BeanWithNullableTypes(@Nullable Integer counter, @Nullable Boolean flag, String value) {
+			this.counter = counter;
+			this.flag = flag;
+			this.value = value;
+		}
+
+		@Nullable
+		public Integer getCounter() {
+			return counter;
+		}
+
+		@Nullable
+		public Boolean isFlag() {
+			return flag;
+		}
+
+		public String getValue() {
+			return value;
+		}
+	}
+
+	private static class BeanWithPrimitiveTypes {
+
+		private int counter;
+
+		private boolean flag;
+
+		private String value;
+
+		public BeanWithPrimitiveTypes(int counter, boolean flag, String value) {
+			this.counter = counter;
+			this.flag = flag;
+			this.value = value;
+		}
+
+		public int getCounter() {
+			return counter;
+		}
+
+		public boolean isFlag() {
+			return flag;
+		}
+
+		public String getValue() {
+			return value;
 		}
 	}
 

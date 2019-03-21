@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,15 @@ import java.io.Writer;
 import javax.servlet.ServletResponse;
 
 import org.springframework.core.MethodParameter;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * Resolves response-related method argument values of types:
+ * Resolves servlet backed response-related method arguments. Supports values of the
+ * following types:
  * <ul>
  * <li>{@link ServletResponse}
  * <li>{@link OutputStream}
@@ -57,8 +59,8 @@ public class ServletResponseMethodArgumentResolver implements HandlerMethodArgum
 	 * {@code null}, the request is considered directly handled.
 	 */
 	@Override
-	public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
+	public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
 
 		if (mavContainer != null) {
 			mavContainer.setRequestHandled(true);

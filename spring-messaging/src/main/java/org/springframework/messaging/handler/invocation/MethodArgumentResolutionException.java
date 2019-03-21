@@ -17,6 +17,7 @@
 package org.springframework.messaging.handler.invocation;
 
 import org.springframework.core.MethodParameter;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
 
@@ -51,6 +52,17 @@ public class MethodArgumentResolutionException extends MessagingException {
 		this.parameter = parameter;
 	}
 
+	/**
+	 * Create a new instance providing the invalid {@code MethodParameter},
+	 * prepared description, and a cause.
+	 */
+	public MethodArgumentResolutionException(
+			Message<?> message, MethodParameter parameter, String description, @Nullable Throwable cause) {
+
+		super(message, getMethodParameterMessage(parameter) + ": " + description, cause);
+		this.parameter = parameter;
+	}
+
 
 	/**
 	 * Return the MethodParameter that was rejected.
@@ -62,7 +74,7 @@ public class MethodArgumentResolutionException extends MessagingException {
 
 	private static String getMethodParameterMessage(MethodParameter parameter) {
 		return "Could not resolve method parameter at index " + parameter.getParameterIndex() +
-				" in " + parameter.getMethod().toGenericString();
+				" in " + parameter.getExecutable().toGenericString();
 	}
 
 }

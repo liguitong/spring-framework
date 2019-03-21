@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,12 +41,16 @@ public class CachingResourceTransformer implements ResourceTransformer {
 	private final Cache cache;
 
 
-	public CachingResourceTransformer(CacheManager cacheManager, String cacheName) {
-		this(cacheManager.getCache(cacheName));
-	}
-
 	public CachingResourceTransformer(Cache cache) {
 		Assert.notNull(cache, "Cache is required");
+		this.cache = cache;
+	}
+
+	public CachingResourceTransformer(CacheManager cacheManager, String cacheName) {
+		Cache cache = cacheManager.getCache(cacheName);
+		if (cache == null) {
+			throw new IllegalArgumentException("Cache '" + cacheName + "' not found");
+		}
 		this.cache = cache;
 	}
 
@@ -65,19 +69,12 @@ public class CachingResourceTransformer implements ResourceTransformer {
 
 		Resource cachedResource = this.cache.get(resource, Resource.class);
 		if (cachedResource != null) {
-			if (logger.isTraceEnabled()) {
-				logger.trace("Found match: " + cachedResource);
-			}
+			logger.trace(exchange.getLogPrefix() + "Resource resolved from cache");
 			return Mono.just(cachedResource);
 		}
 
 		return transformerChain.transform(exchange, resource)
-				.doOnNext(transformed -> {
-					if (logger.isTraceEnabled()) {
-						logger.trace("Putting transformed resource in cache: " + transformed);
-					}
-					this.cache.put(resource, transformed);
-				});
+				.doOnNext(transformed -> this.cache.put(resource, transformed));
 	}
 
 }

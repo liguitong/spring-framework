@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,18 @@ package org.springframework.test.web.servlet.result;
 
 import java.util.concurrent.Callable;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 import org.hamcrest.Matcher;
 
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.util.Assert;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.context.request.async.WebAsyncTask;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.springframework.test.util.AssertionErrors.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.springframework.test.util.AssertionErrors.assertEquals;
 
 /**
  * Factory for assertions on the request.
@@ -129,7 +131,9 @@ public class RequestResultMatchers {
 	@SuppressWarnings("unchecked")
 	public <T> ResultMatcher sessionAttribute(final String name, final Matcher<T> matcher) {
 		return result -> {
-			T value = (T) result.getRequest().getSession().getAttribute(name);
+			HttpSession session = result.getRequest().getSession();
+			Assert.state(session != null, "No HttpSession");
+			T value = (T) session.getAttribute(name);
 			assertThat("Session attribute '" + name + "'", value, matcher);
 		};
 	}
@@ -137,10 +141,12 @@ public class RequestResultMatchers {
 	/**
 	 * Assert a session attribute value.
 	 */
-	@SuppressWarnings("unchecked")
 	public <T> ResultMatcher sessionAttribute(final String name, final Object value) {
-		return result ->
-				assertEquals("Session attribute '" + name + "'", value, result.getRequest().getSession().getAttribute(name));
+		return result -> {
+			HttpSession session = result.getRequest().getSession();
+			Assert.state(session != null, "No HttpSession");
+			assertEquals("Session attribute '" + name + "'", value, session.getAttribute(name));
+		};
 	}
 
 	private static void assertAsyncStarted(HttpServletRequest request) {

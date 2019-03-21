@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,11 @@ import java.util.Map;
 
 import reactor.core.publisher.Mono;
 
+import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.support.ApplicationObjectSupport;
 import org.springframework.core.Ordered;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
-import org.springframework.util.PathMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.CorsProcessor;
@@ -33,8 +34,7 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebHandler;
-import org.springframework.web.server.support.HttpRequestPathHelper;
-import org.springframework.web.util.ParsingPathMatcher;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 /**
  * Abstract base class for {@link org.springframework.web.reactive.HandlerMapping}
@@ -42,98 +42,90 @@ import org.springframework.web.util.ParsingPathMatcher;
  *
  * @author Rossen Stoyanchev
  * @author Juergen Hoeller
+ * @author Brian Clozel
  * @since 5.0
  */
-public abstract class AbstractHandlerMapping extends ApplicationObjectSupport implements HandlerMapping, Ordered {
+public abstract class AbstractHandlerMapping extends ApplicationObjectSupport
+		implements HandlerMapping, Ordered, BeanNameAware {
 
 	private static final WebHandler REQUEST_HANDLED_HANDLER = exchange -> Mono.empty();
 
 
-	private int order = Integer.MAX_VALUE;  // default: same as non-Ordered
+	private final PathPatternParser patternParser;
 
-	private HttpRequestPathHelper pathHelper = new HttpRequestPathHelper();
-
-	private PathMatcher pathMatcher = new ParsingPathMatcher();
-
-	private final UrlBasedCorsConfigurationSource globalCorsConfigSource = new UrlBasedCorsConfigurationSource();
+	private CorsConfigurationSource corsConfigurationSource;
 
 	private CorsProcessor corsProcessor = new DefaultCorsProcessor();
 
+	private int order = Ordered.LOWEST_PRECEDENCE;  // default: same as non-Ordered
+
+	@Nullable
+	private String beanName;
+
+
+	public AbstractHandlerMapping() {
+		this.patternParser = new PathPatternParser();
+		this.corsConfigurationSource = new UrlBasedCorsConfigurationSource(this.patternParser);
+	}
+
 
 	/**
-	 * Specify the order value for this HandlerMapping bean.
-	 * <p>Default value is {@code Integer.MAX_VALUE}, meaning that it's non-ordered.
-	 * @see org.springframework.core.Ordered#getOrder()
+	 * Shortcut method for setting the same property on the underlying pattern
+	 * parser in use. For more details see:
+	 * <ul>
+	 * <li>{@link #getPathPatternParser()} -- the underlying pattern parser
+	 * <li>{@link PathPatternParser#setCaseSensitive(boolean)} -- the case
+	 * sensitive slash option, including its default value.
+	 * </ul>
+	 * <p><strong>Note:</strong> aside from
 	 */
-	public final void setOrder(int order) {
-		this.order = order;
-	}
-
-	@Override
-	public final int getOrder() {
-		return this.order;
+	public void setUseCaseSensitiveMatch(boolean caseSensitiveMatch) {
+		this.patternParser.setCaseSensitive(caseSensitiveMatch);
 	}
 
 	/**
-	 * Set if the path should be URL-decoded. This sets the same property on the
-	 * underlying path helper.
-	 * @see HttpRequestPathHelper#setUrlDecode(boolean)
+	 * Shortcut method for setting the same property on the underlying pattern
+	 * parser in use. For more details see:
+	 * <ul>
+	 * <li>{@link #getPathPatternParser()} -- the underlying pattern parser
+	 * <li>{@link PathPatternParser#setMatchOptionalTrailingSeparator(boolean)} --
+	 * the trailing slash option, including its default value.
+	 * </ul>
 	 */
-	public void setUrlDecode(boolean urlDecode) {
-		this.pathHelper.setUrlDecode(urlDecode);
+	public void setUseTrailingSlashMatch(boolean trailingSlashMatch) {
+		this.patternParser.setMatchOptionalTrailingSeparator(trailingSlashMatch);
 	}
 
 	/**
-	 * Set the {@link HttpRequestPathHelper} to use for resolution of lookup
-	 * paths. Use this to override the default implementation with a custom
-	 * subclass or to share common path helper settings across multiple
-	 * HandlerMappings.
+	 * Return the {@link PathPatternParser} instance that is used for
+	 * {@link #setCorsConfigurations(Map) CORS configuration checks}.
+	 * Sub-classes can also use this pattern parser for their own request
+	 * mapping purposes.
 	 */
-	public void setPathHelper(HttpRequestPathHelper pathHelper) {
-		this.pathHelper = pathHelper;
+	public PathPatternParser getPathPatternParser() {
+		return this.patternParser;
 	}
 
 	/**
-	 * Return the {@link HttpRequestPathHelper} implementation to use for
-	 * resolution of lookup paths.
-	 */
-	public HttpRequestPathHelper getPathHelper() {
-		return this.pathHelper;
-	}
-
-	/**
-	 * Set the PathMatcher implementation to use for matching URL paths
-	 * against registered URL patterns. Default is AntPathMatcher.
-	 * @see org.springframework.web.util.ParsingPathMatcher
-	 */
-	public void setPathMatcher(PathMatcher pathMatcher) {
-		Assert.notNull(pathMatcher, "PathMatcher must not be null");
-		this.pathMatcher = pathMatcher;
-		this.globalCorsConfigSource.setPathMatcher(pathMatcher);
-	}
-
-	/**
-	 * Return the PathMatcher implementation to use for matching URL paths
-	 * against registered URL patterns.
-	 */
-	public PathMatcher getPathMatcher() {
-		return this.pathMatcher;
-	}
-
-	/**
-	 * Set "global" CORS configuration based on URL patterns. By default the
-	 * first matching URL pattern is combined with handler-level CORS
-	 * configuration if any.
+	 * Set the "global" CORS configurations based on URL patterns. By default the
+	 * first matching URL pattern is combined with handler-level CORS configuration if any.
+	 * @see #setCorsConfigurationSource(CorsConfigurationSource)
 	 */
 	public void setCorsConfigurations(Map<String, CorsConfiguration> corsConfigurations) {
-		this.globalCorsConfigSource.setCorsConfigurations(corsConfigurations);
+		Assert.notNull(corsConfigurations, "corsConfigurations must not be null");
+		this.corsConfigurationSource = new UrlBasedCorsConfigurationSource(this.patternParser);
+		((UrlBasedCorsConfigurationSource) this.corsConfigurationSource).setCorsConfigurations(corsConfigurations);
 	}
 
 	/**
-	 * Return the "global" CORS configuration.
+	 * Set the "global" CORS configuration source. By default the first matching URL
+	 * pattern is combined with the CORS configuration for the handler, if any.
+	 * @since 5.1
+	 * @see #setCorsConfigurations(Map)
 	 */
-	public Map<String, CorsConfiguration> getCorsConfigurations() {
-		return this.globalCorsConfigSource.getCorsConfigurations();
+	public void setCorsConfigurationSource(CorsConfigurationSource corsConfigurationSource) {
+		Assert.notNull(corsConfigurationSource, "corsConfigurationSource must not be null");
+		this.corsConfigurationSource = corsConfigurationSource;
 	}
 
 	/**
@@ -153,15 +145,41 @@ public abstract class AbstractHandlerMapping extends ApplicationObjectSupport im
 		return this.corsProcessor;
 	}
 
+	/**
+	 * Specify the order value for this HandlerMapping bean.
+	 * <p>The default value is {@code Ordered.LOWEST_PRECEDENCE}, meaning non-ordered.
+	 * @see org.springframework.core.Ordered#getOrder()
+	 */
+	public void setOrder(int order) {
+		this.order = order;
+	}
+
+	@Override
+	public int getOrder() {
+		return this.order;
+	}
+
+	@Override
+	public void setBeanName(String name) {
+		this.beanName = name;
+	}
+
+	protected String formatMappingName() {
+		return this.beanName != null ? "'" + this.beanName + "'" : "<unknown>";
+	}
+
 
 	@Override
 	public Mono<Object> getHandler(ServerWebExchange exchange) {
 		return getHandlerInternal(exchange).map(handler -> {
+			if (logger.isDebugEnabled()) {
+				logger.debug(exchange.getLogPrefix() + "Mapped to " + handler);
+			}
 			if (CorsUtils.isCorsRequest(exchange.getRequest())) {
-				CorsConfiguration configA = this.globalCorsConfigSource.getCorsConfiguration(exchange);
+				CorsConfiguration configA = this.corsConfigurationSource.getCorsConfiguration(exchange);
 				CorsConfiguration configB = getCorsConfiguration(handler, exchange);
 				CorsConfiguration config = (configA != null ? configA.combine(configB) : configB);
-				if (!getCorsProcessor().processRequest(config, exchange) ||
+				if (!getCorsProcessor().process(config, exchange) ||
 						CorsUtils.isPreFlightRequest(exchange.getRequest())) {
 					return REQUEST_HANDLED_HANDLER;
 				}
@@ -176,8 +194,7 @@ public abstract class AbstractHandlerMapping extends ApplicationObjectSupport im
 	 * <p>On CORS pre-flight requests this method should return a match not for
 	 * the pre-flight request but for the expected actual request based on the URL
 	 * path, the HTTP methods from the "Access-Control-Request-Method" header, and
-	 * the headers from the "Access-Control-Request-Headers" header thus allowing
-	 * the CORS configuration to be obtained via {@link #getCorsConfigurations},
+	 * the headers from the "Access-Control-Request-Headers" header.
 	 * @param exchange current exchange
 	 * @return {@code Mono} for the matching handler, if any
 	 */
@@ -189,6 +206,7 @@ public abstract class AbstractHandlerMapping extends ApplicationObjectSupport im
 	 * @param exchange the current exchange
 	 * @return the CORS configuration for the handler, or {@code null} if none
 	 */
+	@Nullable
 	protected CorsConfiguration getCorsConfiguration(Object handler, ServerWebExchange exchange) {
 		if (handler instanceof CorsConfigurationSource) {
 			return ((CorsConfigurationSource) handler).getCorsConfiguration(exchange);

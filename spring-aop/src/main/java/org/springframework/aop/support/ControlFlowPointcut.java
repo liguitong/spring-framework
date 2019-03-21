@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@ package org.springframework.aop.support;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.aop.ClassFilter;
 import org.springframework.aop.MethodMatcher;
 import org.springframework.aop.Pointcut;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -39,9 +41,10 @@ public class ControlFlowPointcut implements Pointcut, ClassFilter, MethodMatcher
 
 	private Class<?> clazz;
 
+	@Nullable
 	private String methodName;
 
-	private volatile int evaluations;
+	private final AtomicInteger evaluations = new AtomicInteger(0);
 
 
 	/**
@@ -59,7 +62,7 @@ public class ControlFlowPointcut implements Pointcut, ClassFilter, MethodMatcher
 	 * @param clazz the clazz
 	 * @param methodName the name of the method (may be {@code null})
 	 */
-	public ControlFlowPointcut(Class<?> clazz, String methodName) {
+	public ControlFlowPointcut(Class<?> clazz, @Nullable String methodName) {
 		Assert.notNull(clazz, "Class must not be null");
 		this.clazz = clazz;
 		this.methodName = methodName;
@@ -75,8 +78,7 @@ public class ControlFlowPointcut implements Pointcut, ClassFilter, MethodMatcher
 	}
 
 	/**
-	 * Subclasses can override this if it's possible to filter out
-	 * some candidate classes.
+	 * Subclasses can override this if it's possible to filter out some candidate classes.
 	 */
 	@Override
 	public boolean matches(Method method, Class<?> targetClass) {
@@ -90,7 +92,7 @@ public class ControlFlowPointcut implements Pointcut, ClassFilter, MethodMatcher
 
 	@Override
 	public boolean matches(Method method, Class<?> targetClass, Object... args) {
-		this.evaluations++;
+		this.evaluations.incrementAndGet();
 
 		for (StackTraceElement element : new Throwable().getStackTrace()) {
 			if (element.getClassName().equals(this.clazz.getName()) &&
@@ -105,7 +107,7 @@ public class ControlFlowPointcut implements Pointcut, ClassFilter, MethodMatcher
 	 * It's useful to know how many times we've fired, for optimization.
 	 */
 	public int getEvaluations() {
-		return this.evaluations;
+		return this.evaluations.get();
 	}
 
 
@@ -129,7 +131,7 @@ public class ControlFlowPointcut implements Pointcut, ClassFilter, MethodMatcher
 			return false;
 		}
 		ControlFlowPointcut that = (ControlFlowPointcut) other;
-		return (this.clazz.equals(that.clazz)) && ObjectUtils.nullSafeEquals(that.methodName, this.methodName);
+		return (this.clazz.equals(that.clazz)) && ObjectUtils.nullSafeEquals(this.methodName, that.methodName);
 	}
 
 	@Override

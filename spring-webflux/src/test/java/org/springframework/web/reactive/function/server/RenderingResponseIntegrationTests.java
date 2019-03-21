@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,15 +31,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.lang.Nullable;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.result.view.View;
 import org.springframework.web.reactive.result.view.ViewResolver;
 import org.springframework.web.server.ServerWebExchange;
 
 import static org.junit.Assert.*;
-import static org.springframework.web.reactive.function.server.HandlerFilterFunction.ofResponseProcessor;
-import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
-import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+import static org.springframework.web.reactive.function.server.HandlerFilterFunction.*;
+import static org.springframework.web.reactive.function.server.RequestPredicates.*;
+import static org.springframework.web.reactive.function.server.RouterFunctions.*;
 
 /**
  * @author Arjen Poutsma
@@ -68,11 +69,11 @@ public class RenderingResponseIntegrationTests extends AbstractRouterFunctionInt
 		return HandlerStrategies.builder()
 				.viewResolver(new DummyViewResolver())
 				.build();
-
 	}
 
+
 	@Test
-	public void normal() throws Exception {
+	public void normal() {
 		ResponseEntity<String> result =
 				restTemplate.getForEntity("http://localhost:" + port + "/normal", String.class);
 
@@ -84,7 +85,7 @@ public class RenderingResponseIntegrationTests extends AbstractRouterFunctionInt
 	}
 
 	@Test
-	public void filter() throws Exception {
+	public void filter() {
 		ResponseEntity<String> result =
 				restTemplate.getForEntity("http://localhost:" + port + "/filter", String.class);
 
@@ -108,6 +109,7 @@ public class RenderingResponseIntegrationTests extends AbstractRouterFunctionInt
 		return result;
 	}
 
+
 	private static class RenderingResponseHandler {
 
 		public Mono<RenderingResponse> render(ServerRequest request) {
@@ -115,7 +117,6 @@ public class RenderingResponseIntegrationTests extends AbstractRouterFunctionInt
 					.modelAttribute("bar", "baz")
 					.build();
 		}
-
 	}
 
 	private static class DummyViewResolver implements ViewResolver {
@@ -141,7 +142,7 @@ public class RenderingResponseIntegrationTests extends AbstractRouterFunctionInt
 		}
 
 		@Override
-		public Mono<Void> render(Map<String, ?> model, MediaType contentType,
+		public Mono<Void> render(@Nullable Map<String, ?> model, @Nullable MediaType contentType,
 				ServerWebExchange exchange) {
 			StringBuilder builder = new StringBuilder();
 			builder.append("name=").append(this.name).append('\n');

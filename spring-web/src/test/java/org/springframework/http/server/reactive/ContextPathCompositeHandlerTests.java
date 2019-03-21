@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@
 
 package org.springframework.http.server.reactive;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 import reactor.core.publisher.Mono;
@@ -105,11 +107,11 @@ public class ContextPathCompositeHandlerTests {
 		new ContextPathCompositeHandler(map).handle(request, new MockServerHttpResponse());
 
 		assertTrue(handler.wasInvoked());
-		assertEquals("/yet/another/path", handler.getRequest().getContextPath());
+		assertEquals("/yet/another/path", handler.getRequest().getPath().contextPath().value());
 	}
 
 	@Test
-	public void notFound() throws Exception {
+	public void notFound() {
 		TestHttpHandler handler1 = new TestHttpHandler();
 		TestHttpHandler handler2 = new TestHttpHandler();
 
@@ -123,17 +125,39 @@ public class ContextPathCompositeHandlerTests {
 		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
 	}
 
+	@Test // SPR-17144
+	public void notFoundWithCommitAction() {
+
+		AtomicBoolean commitInvoked = new AtomicBoolean(false);
+
+		ServerHttpRequest request = MockServerHttpRequest.get("/unknown/path").build();
+		ServerHttpResponse response = new MockServerHttpResponse();
+		response.beforeCommit(() -> {
+			commitInvoked.set(true);
+			return Mono.empty();
+		});
+
+		Map<String, HttpHandler> map = new HashMap<>();
+		TestHttpHandler handler = new TestHttpHandler();
+		map.put("/path", handler);
+		new ContextPathCompositeHandler(map).handle(request, response).block(Duration.ofSeconds(5));
+
+		assertNotInvoked(handler);
+		assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+		assertTrue(commitInvoked.get());
+	}
+
 
 	private ServerHttpResponse testHandle(String pathToHandle, Map<String, HttpHandler> handlerMap) {
 		ServerHttpRequest request = MockServerHttpRequest.get(pathToHandle).build();
 		ServerHttpResponse response = new MockServerHttpResponse();
-		new ContextPathCompositeHandler(handlerMap).handle(request, response);
+		new ContextPathCompositeHandler(handlerMap).handle(request, response).block(Duration.ofSeconds(5));
 		return response;
 	}
 
 	private void assertInvoked(TestHttpHandler handler, String contextPath) {
 		assertTrue(handler.wasInvoked());
-		assertEquals(contextPath, handler.getRequest().getContextPath());
+		assertEquals(contextPath, handler.getRequest().getPath().contextPath().value());
 	}
 
 	private void assertNotInvoked(TestHttpHandler... handlers) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +84,7 @@ public class JmsTemplateTests {
 
 	private QosSettings qosSettings = new QosSettings(DeliveryMode.PERSISTENT, 9, 10000);
 
+
 	/**
 	 * Create the mock objects for testing.
 	 */
@@ -150,13 +151,10 @@ public class JmsTemplateTests {
 		given(this.session.createProducer(null)).willReturn(messageProducer);
 		given(messageProducer.getPriority()).willReturn(4);
 
-		template.execute(new ProducerCallback<Void>() {
-			@Override
-			public Void doInJms(Session session, MessageProducer producer) throws JMSException {
-				session.getTransacted();
-				producer.getPriority();
-				return null;
-			}
+		template.execute((ProducerCallback<Void>) (session1, producer) -> {
+			session1.getTransacted();
+			producer.getPriority();
+			return null;
 		});
 
 		verify(messageProducer).close();
@@ -175,13 +173,10 @@ public class JmsTemplateTests {
 		given(this.session.createProducer(null)).willReturn(messageProducer);
 		given(messageProducer.getPriority()).willReturn(4);
 
-		template.execute(new ProducerCallback<Void>() {
-			@Override
-			public Void doInJms(Session session, MessageProducer producer) throws JMSException {
-				session.getTransacted();
-				producer.getPriority();
-				return null;
-			}
+		template.execute((ProducerCallback<Void>) (session1, producer) -> {
+			session1.getTransacted();
+			producer.getPriority();
+			return null;
 		});
 
 		verify(messageProducer).setDisableMessageID(true);
@@ -277,7 +272,7 @@ public class JmsTemplateTests {
 	}
 
 	/**
-	 * Test seding to a destination using the method
+	 * Test sending to a destination using the method
 	 * send(String d, MessageCreator messageCreator)
 	 */
 	@Test

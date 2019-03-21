@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Before;
@@ -39,11 +39,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.support.StaticWebApplicationContext;
-import org.springframework.web.reactive.accept.MappingContentTypeResolver;
+import org.springframework.web.method.HandlerTypePredicate;
 import org.springframework.web.reactive.result.method.RequestMappingInfo;
+import org.springframework.web.util.pattern.PathPattern;
+import org.springframework.web.util.pattern.PathPatternParser;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.*;
 
 /**
@@ -63,74 +68,28 @@ public class RequestMappingHandlerMappingTests {
 		this.handlerMapping.setApplicationContext(wac);
 	}
 
-
-	@Test
-	public void useRegisteredSuffixPatternMatch() {
-		assertTrue(this.handlerMapping.useSuffixPatternMatch());
-		assertTrue(this.handlerMapping.useRegisteredSuffixPatternMatch());
-
-		MappingContentTypeResolver contentTypeResolver = mock(MappingContentTypeResolver.class);
-		when(contentTypeResolver.getKeys()).thenReturn(Collections.singleton("json"));
-
-		this.handlerMapping.setContentTypeResolver(contentTypeResolver);
-		this.handlerMapping.afterPropertiesSet();
-
-		assertTrue(this.handlerMapping.useSuffixPatternMatch());
-		assertTrue(this.handlerMapping.useRegisteredSuffixPatternMatch());
-		assertEquals(Collections.singleton("json"), this.handlerMapping.getFileExtensions());
-	}
-
-	@Test
-	public void useRegisteredSuffixPatternMatchInitialization() {
-		MappingContentTypeResolver contentTypeResolver = mock(MappingContentTypeResolver.class);
-		when(contentTypeResolver.getKeys()).thenReturn(Collections.singleton("json"));
-
-		final Set<String> actualExtensions = new HashSet<>();
-		RequestMappingHandlerMapping localHandlerMapping = new RequestMappingHandlerMapping() {
-			@Override
-			protected RequestMappingInfo getMappingForMethod(Method method, Class<?> handlerType) {
-				actualExtensions.addAll(getFileExtensions());
-				return super.getMappingForMethod(method, handlerType);
-			}
-		};
-		this.wac.registerSingleton("testController", ComposedAnnotationController.class);
-		this.wac.refresh();
-
-		localHandlerMapping.setContentTypeResolver(contentTypeResolver);
-		localHandlerMapping.setUseRegisteredSuffixPatternMatch(true);
-		localHandlerMapping.setApplicationContext(this.wac);
-		localHandlerMapping.afterPropertiesSet();
-
-		assertEquals(Collections.singleton("json"), actualExtensions);
-	}
-
-	@Test
-	public void useSuffixPatternMatch() {
-		assertTrue(this.handlerMapping.useSuffixPatternMatch());
-		assertTrue(this.handlerMapping.useRegisteredSuffixPatternMatch());
-
-		this.handlerMapping.setUseSuffixPatternMatch(false);
-		assertFalse(this.handlerMapping.useSuffixPatternMatch());
-
-		this.handlerMapping.setUseRegisteredSuffixPatternMatch(false);
-		assertFalse("'false' registeredSuffixPatternMatch shouldn't impact suffixPatternMatch",
-				this.handlerMapping.useSuffixPatternMatch());
-
-		this.handlerMapping.setUseRegisteredSuffixPatternMatch(true);
-		assertTrue("'true' registeredSuffixPatternMatch should enable suffixPatternMatch",
-				this.handlerMapping.useSuffixPatternMatch());
-	}
-
 	@Test
 	public void resolveEmbeddedValuesInPatterns() {
-		this.handlerMapping.setEmbeddedValueResolver(
-				value -> "/${pattern}/bar".equals(value) ? "/foo/bar" : value
-		);
+		this.handlerMapping.setEmbeddedValueResolver(value -> "/${pattern}/bar".equals(value) ? "/foo/bar" : value);
 
 		String[] patterns = new String[] { "/foo", "/${pattern}/bar" };
 		String[] result = this.handlerMapping.resolveEmbeddedValuesInPatterns(patterns);
 
 		assertArrayEquals(new String[] { "/foo", "/foo/bar" }, result);
+	}
+
+	@Test
+	public void pathPrefix() throws NoSuchMethodException {
+		this.handlerMapping.setEmbeddedValueResolver(value -> "/${prefix}".equals(value) ? "/api" : value);
+		this.handlerMapping.setPathPrefixes(Collections.singletonMap(
+				"/${prefix}", HandlerTypePredicate.forAnnotation(RestController.class)));
+
+		Method method = UserController.class.getMethod("getUser");
+		RequestMappingInfo info = this.handlerMapping.getMappingForMethod(method, UserController.class);
+
+		assertNotNull(info);
+		assertEquals(Collections.singleton(new PathPatternParser().parse("/api/user/{id}")),
+				info.getPatternsCondition().getPatterns());
 	}
 
 	@Test
@@ -193,9 +152,9 @@ public class RequestMappingHandlerMappingTests {
 
 		assertNotNull(info);
 
-		Set<String> paths = info.getPatternsCondition().getPatterns();
+		Set<PathPattern> paths = info.getPatternsCondition().getPatterns();
 		assertEquals(1, paths.size());
-		assertEquals(path, paths.iterator().next());
+		assertEquals(path, paths.iterator().next().getPatternString());
 
 		Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
 		assertEquals(1, methods.size());
@@ -248,6 +207,17 @@ public class RequestMappingHandlerMappingTests {
 
 		@AliasFor(annotation = RequestMapping.class, attribute = "path") @SuppressWarnings("unused")
 		String[] value() default {};
+	}
+
+
+	@RestController
+	@RequestMapping("/user")
+	static class UserController {
+
+		@GetMapping("/{id}")
+		public Principal getUser() {
+			return mock(Principal.class);
+		}
 	}
 
 }

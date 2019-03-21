@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.reactive.result.method.annotation;
 
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Before;
@@ -51,6 +51,7 @@ import static org.junit.Assert.*;
 
 /**
  * Unit tests for {@link ControllerMethodResolver}.
+ *
  * @author Rossen Stoyanchev
  */
 public class ControllerMethodResolverTests {
@@ -61,8 +62,7 @@ public class ControllerMethodResolverTests {
 
 
 	@Before
-	public void setUp() throws Exception {
-
+	public void setup() {
 		ArgumentResolverConfigurer resolvers = new ArgumentResolverConfigurer();
 		resolvers.addCustomResolver(new CustomArgumentResolver());
 		resolvers.addCustomResolver(new CustomSyncArgumentResolver());
@@ -76,7 +76,7 @@ public class ControllerMethodResolverTests {
 		applicationContext.refresh();
 
 		this.methodResolver = new ControllerMethodResolver(
-				resolvers, codecs, new ReactiveAdapterRegistry(), applicationContext);
+				resolvers, ReactiveAdapterRegistry.getSharedInstance(), applicationContext, codecs.getReaders());
 
 		Method method = ResolvableMethod.on(TestController.class).mockCall(TestController::handle).method();
 		this.handlerMethod = new HandlerMethod(new TestController(), method);
@@ -84,8 +84,7 @@ public class ControllerMethodResolverTests {
 
 
 	@Test
-	public void requestMappingArgumentResolvers() throws Exception {
-
+	public void requestMappingArgumentResolvers() {
 		InvocableHandlerMethod invocable = this.methodResolver.getRequestMappingMethod(this.handlerMethod);
 		List<HandlerMethodArgumentResolver> resolvers = invocable.getResolvers();
 
@@ -94,7 +93,10 @@ public class ControllerMethodResolverTests {
 		assertEquals(RequestParamMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestBodyArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(RequestPartMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ModelAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMapMethodArgumentResolver.class, next(resolvers, index).getClass());
@@ -103,11 +105,13 @@ public class ControllerMethodResolverTests {
 		assertEquals(SessionAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 
+		assertEquals(ContinuationHandlerMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(HttpEntityArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ModelArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ErrorsMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ServerWebExchangeArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PrincipalArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(SessionStatusMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(WebSessionArgumentResolver.class, next(resolvers, index).getClass());
 
 		assertEquals(CustomArgumentResolver.class, next(resolvers, index).getClass());
@@ -118,10 +122,8 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void modelAttributeArgumentResolvers() throws Exception {
-
-		List<InvocableHandlerMethod> methods =
-				this.methodResolver.getModelAttributeMethods(this.handlerMethod);
+	public void modelAttributeArgumentResolvers() {
+		List<InvocableHandlerMethod> methods = this.methodResolver.getModelAttributeMethods(this.handlerMethod);
 
 		assertEquals("Expected one each from Controller + ControllerAdvice", 2, methods.size());
 		InvocableHandlerMethod invocable = methods.get(0);
@@ -132,6 +134,8 @@ public class ControllerMethodResolverTests {
 		assertEquals(RequestParamMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ModelAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMapMethodArgumentResolver.class, next(resolvers, index).getClass());
@@ -140,6 +144,7 @@ public class ControllerMethodResolverTests {
 		assertEquals(SessionAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 
+		assertEquals(ContinuationHandlerMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ModelArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ErrorsMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ServerWebExchangeArgumentResolver.class, next(resolvers, index).getClass());
@@ -154,8 +159,7 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void initBinderArgumentResolvers() throws Exception {
-
+	public void initBinderArgumentResolvers() {
 		List<SyncInvocableHandlerMethod> methods =
 				this.methodResolver.getInitBinderMethods(this.handlerMethod);
 
@@ -168,6 +172,8 @@ public class ControllerMethodResolverTests {
 		assertEquals(RequestParamMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(CookieValueMethodArgumentResolver.class, next(resolvers, index).getClass());
@@ -183,13 +189,11 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void exceptionHandlerArgumentResolvers() throws Exception {
+	public void exceptionHandlerArgumentResolvers() {
+		InvocableHandlerMethod invocable = this.methodResolver.getExceptionHandlerMethod(
+				new ResponseStatusException(HttpStatus.BAD_REQUEST, "reason"), this.handlerMethod);
 
-		Optional<InvocableHandlerMethod> optional =
-				this.methodResolver.getExceptionHandlerMethod(
-						new ResponseStatusException(HttpStatus.BAD_REQUEST, "reason"), this.handlerMethod);
-
-		InvocableHandlerMethod invocable = optional.orElseThrow(() -> new AssertionError("No match"));
+		assertNotNull("No match", invocable);
 		assertEquals(TestController.class, invocable.getBeanType());
 		List<HandlerMethodArgumentResolver> resolvers = invocable.getResolvers();
 
@@ -198,6 +202,8 @@ public class ControllerMethodResolverTests {
 		assertEquals(RequestParamMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PathVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMethodArgumentResolver.class, next(resolvers, index).getClass());
+		assertEquals(MatrixVariableMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestHeaderMapMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(CookieValueMethodArgumentResolver.class, next(resolvers, index).getClass());
@@ -205,6 +211,7 @@ public class ControllerMethodResolverTests {
 		assertEquals(SessionAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(RequestAttributeMethodArgumentResolver.class, next(resolvers, index).getClass());
 
+		assertEquals(ContinuationHandlerMethodArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ModelArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(ServerWebExchangeArgumentResolver.class, next(resolvers, index).getClass());
 		assertEquals(PrincipalArgumentResolver.class, next(resolvers, index).getClass());
@@ -217,13 +224,10 @@ public class ControllerMethodResolverTests {
 	}
 
 	@Test
-	public void exceptionHandlerFromControllerAdvice() throws Exception {
+	public void exceptionHandlerFromControllerAdvice() {
+		InvocableHandlerMethod invocable = this.methodResolver.getExceptionHandlerMethod(
+				new IllegalStateException("reason"), this.handlerMethod);
 
-		Optional<InvocableHandlerMethod> optional =
-				this.methodResolver.getExceptionHandlerMethod(
-						new IllegalStateException("reason"), this.handlerMethod);
-
-		InvocableHandlerMethod invocable = optional.orElseThrow(() -> new AssertionError("No match"));
 		assertNotNull(invocable);
 		assertEquals(TestControllerAdvice.class, invocable.getBeanType());
 	}
@@ -237,7 +241,7 @@ public class ControllerMethodResolverTests {
 
 
 	@Controller
-	private static class TestController {
+	static class TestController {
 
 		@InitBinder
 		void initDataBinder() {}
@@ -253,8 +257,9 @@ public class ControllerMethodResolverTests {
 
 	}
 
+
 	@ControllerAdvice
-	private static class TestControllerAdvice {
+	static class TestControllerAdvice {
 
 		@InitBinder
 		void initDataBinder() {}
@@ -267,7 +272,8 @@ public class ControllerMethodResolverTests {
 
 	}
 
-	private static class CustomArgumentResolver implements HandlerMethodArgumentResolver {
+
+	static class CustomArgumentResolver implements HandlerMethodArgumentResolver {
 
 		@Override
 		public boolean supportsParameter(MethodParameter p) {
@@ -280,11 +286,12 @@ public class ControllerMethodResolverTests {
 		}
 	}
 
-	private static class CustomSyncArgumentResolver extends CustomArgumentResolver
+
+	static class CustomSyncArgumentResolver extends CustomArgumentResolver
 			implements SyncHandlerMethodArgumentResolver {
 
 		@Override
-		public Optional<Object> resolveArgumentValue(MethodParameter p, BindingContext c, ServerWebExchange e) {
+		public Object resolveArgumentValue(MethodParameter p, BindingContext c, ServerWebExchange e) {
 			return null;
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2016 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,21 +25,22 @@ import java.util.Set;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.cors.reactive.CorsUtils;
 import org.springframework.web.server.ServerWebExchange;
 
 /**
  * A logical disjunction (' || ') request condition that matches a request
- * against a set of {@link RequestMethod}s.
+ * against a set of {@link RequestMethod RequestMethods}.
  *
  * @author Rossen Stoyanchev
  * @since 5.0
  */
 public final class RequestMethodsRequestCondition extends AbstractRequestCondition<RequestMethodsRequestCondition> {
 
-	private static final RequestMethodsRequestCondition HEAD_CONDITION =
-			new RequestMethodsRequestCondition(RequestMethod.HEAD);
+	private static final RequestMethodsRequestCondition GET_CONDITION =
+			new RequestMethodsRequestCondition(RequestMethod.GET);
 
 
 	private final Set<RequestMethod> methods;
@@ -65,7 +66,7 @@ public final class RequestMethodsRequestCondition extends AbstractRequestConditi
 
 
 	/**
-	 * Returns all {@link RequestMethod}s contained in this condition.
+	 * Returns all {@link RequestMethod RequestMethods} contained in this condition.
 	 */
 	public Set<RequestMethod> getMethods() {
 		return this.methods;
@@ -102,17 +103,18 @@ public final class RequestMethodsRequestCondition extends AbstractRequestConditi
 	 * request method is OPTIONS.
 	 */
 	@Override
+	@Nullable
 	public RequestMethodsRequestCondition getMatchingCondition(ServerWebExchange exchange) {
 		if (CorsUtils.isPreFlightRequest(exchange.getRequest())) {
 			return matchPreFlight(exchange.getRequest());
 		}
 		if (getMethods().isEmpty()) {
-			if (RequestMethod.OPTIONS.name().equals(exchange.getRequest().getMethod().name())) {
+			if (RequestMethod.OPTIONS.name().equals(exchange.getRequest().getMethodValue())) {
 				return null; // No implicit match for OPTIONS (we handle it)
 			}
 			return this;
 		}
-		return matchRequestMethod(exchange.getRequest().getMethod().name());
+		return matchRequestMethod(exchange.getRequest().getMethod());
 	}
 
 	/**
@@ -125,11 +127,11 @@ public final class RequestMethodsRequestCondition extends AbstractRequestConditi
 			return this;
 		}
 		HttpMethod expectedMethod = request.getHeaders().getAccessControlRequestMethod();
-		return matchRequestMethod(expectedMethod.name());
+		return matchRequestMethod(expectedMethod);
 	}
 
-	private RequestMethodsRequestCondition matchRequestMethod(String httpMethodValue) {
-		HttpMethod httpMethod = HttpMethod.resolve(httpMethodValue);
+	@Nullable
+	private RequestMethodsRequestCondition matchRequestMethod(@Nullable HttpMethod httpMethod) {
 		if (httpMethod != null) {
 			for (RequestMethod method : getMethods()) {
 				if (httpMethod.matches(method.name())) {
@@ -137,7 +139,7 @@ public final class RequestMethodsRequestCondition extends AbstractRequestConditi
 				}
 			}
 			if (httpMethod == HttpMethod.HEAD && getMethods().contains(RequestMethod.GET)) {
-				return HEAD_CONDITION;
+				return GET_CONDITION;
 			}
 		}
 		return null;
@@ -156,7 +158,18 @@ public final class RequestMethodsRequestCondition extends AbstractRequestConditi
 	 */
 	@Override
 	public int compareTo(RequestMethodsRequestCondition other, ServerWebExchange exchange) {
-		return (other.methods.size() - this.methods.size());
+		if (other.methods.size() != this.methods.size()) {
+			return other.methods.size() - this.methods.size();
+		}
+		else if (this.methods.size() == 1) {
+			if (this.methods.contains(RequestMethod.HEAD) && other.methods.contains(RequestMethod.GET)) {
+				return -1;
+			}
+			else if (this.methods.contains(RequestMethod.GET) && other.methods.contains(RequestMethod.HEAD)) {
+				return 1;
+			}
+		}
+		return 0;
 	}
 
 }
